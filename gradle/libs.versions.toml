@@ -1,6 +1,5 @@
 [versions]
-# AGP and tools should be updated together
-androidGradlePlugin = "8.4.2"
+agp = "8.5.1"
 androidxAppCompat = "1.7.0"
 androidxCore = "1.13.1"
 kotlin = "2.0.0"
@@ -8,12 +7,10 @@ kotlin = "2.0.0"
 [libraries]
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidxAppCompat" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
-
-# Dependencies of the included build-logic
-android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "androidGradlePlugin" }
+android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
 
 [plugins]
-android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 
 # Plugins defined by this project
