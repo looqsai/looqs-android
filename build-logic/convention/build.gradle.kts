@@ -22,6 +22,7 @@ kotlin {
 dependencies {
     compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.kotlin.gradlePlugin)
+    compileOnly(libs.compose.gradlePlugin)
 }
 
 tasks {
@@ -36,6 +37,10 @@ gradlePlugin {
         register("androidApplication") {
             id = "project.android.application"
             implementationClass = "AndroidApplicationConventionPlugin"
+        }
+        register("androidApplicationCompose") {
+            id = "project.android.application.compose"
+            implementationClass = "AndroidApplicationComposeConventionPlugin"
         }
     }
 }

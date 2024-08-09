@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.project.android.application)
+    alias(libs.plugins.project.android.application.compose)
 }
 
 android {
@@ -30,4 +31,10 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
 }

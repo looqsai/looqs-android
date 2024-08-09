@@ -1,0 +1,8 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Allows us to override night specific attributes in the
+     values-night folder. -->
+    <style name="NightAdjusted.Theme.App" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Base application theme. -->
+    <style name="Theme.BaseApp" parent="NightAdjusted.Theme.App"/>
+</resources>
