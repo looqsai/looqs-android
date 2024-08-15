@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.project.android.application)
     alias(libs.plugins.project.android.application.compose)
+    alias(libs.plugins.project.hilt)
 }
 
 android {
@@ -9,6 +10,7 @@ android {
         applicationId = "com.sean8.jeminai"
         versionCode = 1
         versionName = "0.0.1"
+        testInstrumentationRunner = "com.sean8.jeminai.core.testing.HiltTestRunner"
     }
 
     buildTypes {
@@ -29,6 +31,9 @@ android {
 }
 
 dependencies {
+    implementation(project(":feature:settings"))
+    implementation(project(":core:testing"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
 
@@ -37,4 +42,5 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.runner)
 }

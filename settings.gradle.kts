@@ -16,4 +16,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "jeminai"
 
+include(":core:testing")
+include(":feature:settings")
 include(":app")
