@@ -16,6 +16,14 @@ dependencyResolutionManagement {
 
 rootProject.name = "jeminai"
 
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 include(":core:testing")
+include(":core:data")
+include(":core:datastore")
+include(":core:datastore-proto")
+include(":core:model")
+include(":core:dispatchers")
+
 include(":feature:settings")
+
 include(":app")

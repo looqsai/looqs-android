@@ -1,7 +1,7 @@
-package com.sean8.jeminai.feature.setting.respository
+package com.sean8.jeminai.core.data.repository
 
-import com.sean8.jeminai.feature.settings.model.data.DarkThemeConfig
-import com.sean8.jeminai.feature.settings.model.data.UserData
+import com.sean8.jeminai.core.model.DarkThemeConfig
+import com.sean8.jeminai.core.model.UserData
 import kotlinx.coroutines.flow.Flow
 
 interface UserDataRepository {

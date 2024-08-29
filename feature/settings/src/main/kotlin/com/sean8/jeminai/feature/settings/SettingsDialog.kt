@@ -29,13 +29,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sean8.jeminai.core.model.DarkThemeConfig
+import com.sean8.jeminai.core.model.DarkThemeConfig.DARK
+import com.sean8.jeminai.core.model.DarkThemeConfig.FOLLOW_SYSTEM
+import com.sean8.jeminai.core.model.DarkThemeConfig.LIGHT
 import com.sean8.jeminai.feature.settings.R.string
 import com.sean8.jeminai.feature.settings.SettingsUiState.Loading
 import com.sean8.jeminai.feature.settings.SettingsUiState.Success
-import com.sean8.jeminai.feature.settings.model.data.DarkThemeConfig
-import com.sean8.jeminai.feature.settings.model.data.DarkThemeConfig.DARK
-import com.sean8.jeminai.feature.settings.model.data.DarkThemeConfig.FOLLOW_SYSTEM
-import com.sean8.jeminai.feature.settings.model.data.DarkThemeConfig.LIGHT
 
 @Composable
 fun SettingsDialog(

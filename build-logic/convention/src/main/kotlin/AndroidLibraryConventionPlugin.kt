@@ -1,5 +1,7 @@
 import com.android.build.gradle.LibraryExtension
 import com.sean8.jeminai.configureKotlinAndroid
+import com.sean8.jeminai.libs
+
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
@@ -17,7 +19,8 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             extensions.configure<LibraryExtension> {
                 configureKotlinAndroid(this)
                 defaultConfig.targetSdk = 34
-                defaultConfig.testInstrumentationRunner = "com.sean8.jeminai.core.testing.HiltTestRunner"
+
+                defaultConfig.testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
                 testOptions.animationsDisabled = true
                 // The resource prefix is derived from the module name,
                 // so resources inside ":core:module1" must be prefixed with "core_module1_"
@@ -27,8 +30,15 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             }
 
             dependencies {
+                add("androidTestImplementation", libs.findLibrary("androidx-runner").get())
+                add("androidTestImplementation", libs.findLibrary("androidx-test-rules").get())
+
                 add("androidTestImplementation", kotlin("test"))
                 add("testImplementation", kotlin("test"))
+                add(
+                    "androidTestImplementation",
+                    libs.findLibrary("androidx.test.espresso.core").get(),
+                )
             }
         }
     }

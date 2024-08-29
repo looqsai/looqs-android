@@ -5,19 +5,13 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.sean8.jeminai.core.model.DarkThemeConfig.DARK
 import com.sean8.jeminai.feature.settings.SettingsUiState.Loading
 import com.sean8.jeminai.feature.settings.SettingsUiState.Success
-import com.sean8.jeminai.feature.settings.model.data.DarkThemeConfig.DARK
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
 import org.junit.Test
 
-@HiltAndroidTest
 class SettingsDialogTest {
-
-    @get:Rule
-    val hiltRule = HiltAndroidRule(this)
 
     @get:Rule
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()

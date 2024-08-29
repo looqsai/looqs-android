@@ -1,4 +1,4 @@
-package com.sean8.jeminai.feature.settings.model.data
+package com.sean8.jeminai.core.model
 
 enum class DarkThemeConfig {
     FOLLOW_SYSTEM,

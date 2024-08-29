@@ -1,4 +1,4 @@
-package com.sean8.jeminai.feature.settings.model.data
+package com.sean8.jeminai.core.model
 
 data class UserData(
     val darkThemeConfig: DarkThemeConfig,

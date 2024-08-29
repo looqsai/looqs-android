@@ -16,7 +16,6 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
             extensions.configure<ApplicationExtension> {
                 configureKotlinAndroid(this)
                 defaultConfig.targetSdk = 34
-                defaultConfig.testInstrumentationRunner = "com.sean8.jeminai.core.testing.HiltTestRunner"
                 testOptions.animationsDisabled = true
             }
         }
