@@ -4,11 +4,11 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.dataStoreFile
+import com.sean8.core.hiltcoroutines.AppDispatchers
+import com.sean8.core.hiltcoroutines.Dispatcher
+import com.sean8.core.hiltcoroutines.di.ApplicationScope
 import com.sean8.jeminai.core.datastore.UserPreferences
 import com.sean8.jeminai.core.datastore.UserPreferencesSerializer
-import com.sean8.jeminai.core.dispatchers.AppDispatchers.IO
-import com.sean8.jeminai.core.dispatchers.Dispatcher
-import com.sean8.jeminai.core.dispatchers.di.ApplicationScope
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,7 +26,7 @@ object DataStoreModule {
     @Singleton
     internal fun providesUserPreferencesDataStore(
         @ApplicationContext context: Context,
-        @Dispatcher(IO) ioDispatcher: CoroutineDispatcher,
+        @Dispatcher(AppDispatchers.IO) ioDispatcher: CoroutineDispatcher,
         @ApplicationScope scope: CoroutineScope,
         userPreferencesSerializer: UserPreferencesSerializer,
     ): DataStore<UserPreferences> =

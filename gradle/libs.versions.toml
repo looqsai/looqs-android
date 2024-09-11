@@ -26,6 +26,7 @@ androidxDataStore = "1.1.1"
 protobuf = "4.26.1"
 protobufPlugin = "0.9.4"
 androidxEspresso = "3.6.1"
+hilt-coroutines = "1.0.0"
 
 [bundles]
 androidx-compose-ui-test = ["androidx-ui-test-manifest", "androidx-ui-test-junit4"]
@@ -74,6 +75,7 @@ hilt-core = { group = "com.google.dagger", name = "hilt-core", version.ref = "hi
 hilt-ext-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltExt" }
 hilt-ext-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltExt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "androidxHiltNavigationCompose" }
+hilt-coroutines = { group = "com.sean8.core", name = "hilt-coroutines", version.ref = "hilt-coroutines"}
 
 # Dependencies of the included build-logic
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }

@@ -20,7 +20,7 @@ dependencies {
     testImplementation(libs.kotlinx.serialization.json)
     testImplementation(projects.core.testing)
     testImplementation(libs.hilt.android.testing)
-    testImplementation(projects.core.dispatchers)
+    testImplementation(libs.hilt.coroutines)
     testImplementation(libs.robolectric)
 
     testImplementation(projects.core.datastore)
