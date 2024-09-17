@@ -1,4 +1,5 @@
-[![AndroidCI](https://github.com/SeanZoR/jeminai/actions/workflows/Build.yaml/badge.svg)](https://github.com/SeanZoR/jeminai/actions/workflows/Build.yaml)# Android Project Scaffold (Jeminai)
+# Android Project Scaffold (Jeminai)
+[![AndroidCI](https://github.com/SeanZoR/jeminai/actions/workflows/Build.yaml/badge.svg)](https://github.com/SeanZoR/jeminai/actions/workflows/Build.yaml)
 
 The **Jeminai Project** provides a modern Android architecture scaffold, making it easier to kickstart projects with Kotlin, Jetpack, Hilt, and reusable core modules. This repository includes essential components such as data management, user preferences using AndroidX DataStore, theme management, and unit testing, all structured using a modular approach.
 
