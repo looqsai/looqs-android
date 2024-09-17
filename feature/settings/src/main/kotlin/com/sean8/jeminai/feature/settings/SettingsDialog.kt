@@ -187,3 +187,14 @@ private fun PreviewSettingsDialogLoading() {
         onChangeDarkThemeConfig = {},
     )
 }
+
+@Preview
+@Composable
+private fun PreviewSettingsPanel() {
+    MaterialTheme {
+        SettingsPanel(
+            UserEditableSettings(DARK),
+            {},
+        )
+    }
+}

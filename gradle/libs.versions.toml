@@ -27,6 +27,7 @@ protobuf = "4.26.1"
 protobufPlugin = "0.9.4"
 androidxEspresso = "3.6.1"
 hilt-coroutines = "1.0.0"
+uiTextGoogleFonts = "1.7.0"
 
 [bundles]
 androidx-compose-ui-test = ["androidx-ui-test-manifest", "androidx-ui-test-junit4"]
@@ -86,6 +87,7 @@ androidx-material3-android = { group = "androidx.compose.material3", name = "mat
 androidx-datastore-core-android = { group = "androidx.datastore", name = "datastore-core-android", version.ref = "datastoreCoreAndroid" }
 core = { group = "com.google.ar", name = "core", version.ref = "core" }
 androidx-runner = { group = "androidx.test", name = "runner", version.ref = "runner" }
+androidx-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts", version.ref = "uiTextGoogleFonts" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
