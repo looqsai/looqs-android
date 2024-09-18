@@ -1,5 +1,5 @@
 # Android Project Scaffold (Jeminai)
-[![AndroidCI](https://github.com/SeanZoR/jeminai/actions/workflows/Build.yaml/badge.svg)](https://github.com/SeanZoR/jeminai/actions/workflows/Build.yaml)
+[![AndroidCI](https://github.com/SeanZoR/jeminai-modern-android-scaffold/actions/workflows/Build.yaml/badge.svg)](https://github.com/SeanZoR/jeminai-modern-android-scaffold/actions/workflows/Build.yaml)
 
 The **Jeminai Project** provides a modern Android architecture scaffold, making it easier to kickstart projects with Kotlin, Jetpack, Hilt, and reusable core modules. This repository includes essential components such as data management, user preferences using AndroidX DataStore, theme management, and unit testing, all structured using a modular approach.
 
@@ -34,12 +34,12 @@ The Jeminai project is inspired by the [Now in Android](https://github.com/andro
 To start using this project for your own development:
 
 1. **Fork the Repository**
-    - Visit the [Jeminai GitHub page](https://github.com/seanzor/jeminai).
+    - Visit the [Jeminai GitHub page](https://github.com/seanzor/jeminai-modern-android-scaffold).
     - Click "Fork" to create a copy under your GitHub account.
 
 2. **Clone the Forked Repository**
    ```bash
-   git clone https://github.com/yourusername/jeminai.git
+   git clone https://github.com/yourusername/jeminai-modern-android-scaffold.git
    cd jeminai
    ```
 
