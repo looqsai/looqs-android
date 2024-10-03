@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<voice-interaction-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:sessionService="com.sean8.jeminai.core.voice.MyVoiceInteractionSessionService"
+    android:recognitionService="com.sean8.jeminai.core.voice.MyVoiceInteractionService"
+    android:settingsActivity="com.sean8.jeminai.MainActivity"
+    android:supportsAssist="true" />

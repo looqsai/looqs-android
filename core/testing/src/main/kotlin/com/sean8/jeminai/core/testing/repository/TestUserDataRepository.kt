@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.filterNotNull
 
 val emptyUserData = UserData(
     darkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
+    isProjectionApproved = false,
 )
 
 class TestUserDataRepository : UserDataRepository {
@@ -25,6 +26,12 @@ class TestUserDataRepository : UserDataRepository {
     override suspend fun setDarkThemeConfig(darkThemeConfig: DarkThemeConfig) {
         currentUserData.let { current ->
             _userData.tryEmit(current.copy(darkThemeConfig = darkThemeConfig))
+        }
+    }
+
+    override suspend fun setProjectionApproved(projectionApproved: Boolean) {
+        currentUserData.let { current ->
+            _userData.tryEmit(current.copy(isProjectionApproved = projectionApproved))
         }
     }
 

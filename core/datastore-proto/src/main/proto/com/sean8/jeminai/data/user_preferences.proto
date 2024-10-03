@@ -7,4 +7,5 @@ option java_multiple_files = true;
 
 message UserPreferences {
   DarkThemeConfigProto dark_theme_config = 1;
+  bool is_projection_approved = 2;
 }

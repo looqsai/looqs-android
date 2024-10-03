@@ -23,6 +23,7 @@ class AppPreferencesDataSource @Inject constructor(
 
                     DarkThemeConfigProto.DARK_THEME_CONFIG_DARK -> DarkThemeConfig.DARK
                 },
+                isProjectionApproved = it.isProjectionApproved,
             )
         }
 
@@ -36,6 +37,14 @@ class AppPreferencesDataSource @Inject constructor(
                     DarkThemeConfig.LIGHT -> DarkThemeConfigProto.DARK_THEME_CONFIG_LIGHT
                     DarkThemeConfig.DARK -> DarkThemeConfigProto.DARK_THEME_CONFIG_DARK
                 }
+            }
+        }
+    }
+
+    suspend fun setProjectionApproved(projectionApproved: Boolean) {
+        userPreferences.updateData {
+            it.copy {
+                this.isProjectionApproved = projectionApproved
             }
         }
     }

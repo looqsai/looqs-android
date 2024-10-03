@@ -15,7 +15,7 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
+//            applicationIdSuffix = ".debug"
         }
         release {
             isMinifyEnabled = true
@@ -33,6 +33,8 @@ android {
 dependencies {
     implementation(projects.feature.settings)
     implementation(projects.core.testing)
+    implementation(projects.core.accessibility)
+    implementation(projects.core.voice)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

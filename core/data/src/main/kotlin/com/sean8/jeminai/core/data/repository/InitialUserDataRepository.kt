@@ -15,4 +15,8 @@ internal class InitialUserDataRepository @Inject constructor(
     override suspend fun setDarkThemeConfig(darkThemeConfig: DarkThemeConfig) {
         appPreferenceDataSource.setDarkThemeConfig(darkThemeConfig)
     }
+
+    override suspend fun setProjectionApproved(projectionApproved: Boolean) {
+        appPreferenceDataSource.setProjectionApproved(projectionApproved)
+    }
 }
