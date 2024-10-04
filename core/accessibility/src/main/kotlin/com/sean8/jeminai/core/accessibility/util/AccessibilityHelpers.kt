@@ -2,7 +2,6 @@ package com.sean8.jeminai.core.accessibility.util
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
-import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -54,10 +53,6 @@ fun AccessibilityNodeInfo.isPermissionAllowButton() =
     viewIdResourceName == "com.android.packageinstaller:id/permission_allow_button"
 
 fun AccessibilityNodeInfo.click() = isClickable && performAction(AccessibilityNodeInfo.ACTION_CLICK)
-
-/** Returns the class name if exist, or View as a fallback class **/
-fun AccessibilityNodeInfo.getClassNameSafe(): String =
-    if (className.isNullOrEmpty()) View::class.java.name else className.toString()
 
 fun AccessibilityEvent.toConciseString(): String {
     return when {

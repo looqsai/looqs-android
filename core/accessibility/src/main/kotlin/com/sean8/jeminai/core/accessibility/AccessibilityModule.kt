@@ -1,16 +1,19 @@
 package com.sean8.jeminai.core.accessibility
 
+import com.sean8.jeminai.core.util.AccessibilityHelper
+import dagger.Binds
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
+import dagger.hilt.android.components.ServiceComponent
+import dagger.hilt.android.scopes.ServiceScoped
 
 @Module
-@InstallIn(SingletonComponent::class)
-object AccessibilityModule {
+@InstallIn(ServiceComponent::class)
+abstract class AccessibilityModule {
 
-    @Provides
-    @Singleton
-    fun provideAccessibilityEventBus() = AccessibilityEventBus()
+    @Binds
+    @ServiceScoped
+    abstract fun bindAccessibilityHelper(
+        impl: AccessibilityHelperImpl,
+    ): AccessibilityHelper
 }

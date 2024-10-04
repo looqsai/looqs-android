@@ -46,6 +46,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.runner)
     implementation(libs.androidx.ui.text.google.fonts)
+    implementation(project(":core:util"))
 
     androidTestImplementation(libs.androidx.test.espresso.core)
 }

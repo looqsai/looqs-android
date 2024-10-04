@@ -9,9 +9,6 @@ android {
 }
 
 dependencies {
-//    implementation(libs.hilt.coroutines)
-    implementation(libs.moshi)
-    implementation(libs.moshi.reflection)
     implementation(libs.androidx.recyclerview)
     implementation(libs.okhttp)
     implementation(libs.commons.codec)
@@ -23,9 +20,16 @@ dependencies {
     implementation(libs.androidx.material3.android)
     implementation(libs.hilt.coroutines)
     implementation(projects.core.data)
+    implementation(projects.core.util)
+    implementation(projects.core.llm)
+    implementation(projects.core.actions)
 
+    // TODO: Needed here?
+    implementation(libs.moshi)
+    implementation(libs.moshi.reflection)
     implementation(libs.moshi.adapters)
     implementation(libs.moshi.codegen)
+    implementation(project(":core:voice"))
     ksp(libs.moshi.codegen)
 
     testImplementation(libs.kotlinx.coroutines.test)

@@ -18,12 +18,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.sean8.jeminai.MainActivityUiState.Loading
 import com.sean8.jeminai.MainActivityUiState.Success
 import com.sean8.jeminai.core.accessibility.AccessibilityEventBus
-import com.sean8.jeminai.core.accessibility.llm.ServerMockService
 import com.sean8.jeminai.core.accessibility.ui.SetupScreen
 import com.sean8.jeminai.core.model.DarkThemeConfig.DARK
 import com.sean8.jeminai.core.model.DarkThemeConfig.FOLLOW_SYSTEM
 import com.sean8.jeminai.core.model.DarkThemeConfig.LIGHT
 import com.sean8.jeminai.ui.theme.AppTheme
+import com.sean8.jeminai.util.ServerMockService
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach

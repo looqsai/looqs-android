@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -45,8 +44,8 @@ fun SetupScreen(
     val accessibilityStatus by viewModel.accessibilityStatus.observeAsState(initial = false)
     val projectionToken by viewModel.projectionToken.observeAsState()
     val latestMessage by viewModel.latestMessage.observeAsState(initial = "")
-    val isDefaultAssistant by viewModel.isDefaultAssistant.observeAsState(initial = false)
     val version = viewModel.appVersion
+    val isListening by viewModel.isListening.observeAsState(initial = false)
 
     // Handle navigation to accessibility settings
     val navigateToAccessibility by viewModel.navigateToAccessibility.observeAsState()
@@ -79,12 +78,6 @@ fun SetupScreen(
         launcher.launch(intent)
     }
 
-    // Refresh assistant status when the screen resumes
-    DisposableEffect(Unit) {
-        viewModel.checkIfDefaultAssistant()
-        onDispose { }
-    }
-
     // Main UI
     SetupOptions(
         networkStatus = networkStatus,
@@ -92,11 +85,14 @@ fun SetupScreen(
         projectionToken = projectionToken,
         latestMessage = latestMessage,
         version = version,
-        isDefaultAssistant = isDefaultAssistant,
+        isListening = isListening, // Pass the new parameter
         onAccessibilityClicked = { viewModel.navigateToAccessibility() },
         onRevokeAccessibilityClicked = { viewModel.revokeAccessibility() },
         onProjectionClicked = { viewModel.askProjection() },
-        onAssistantClicked = { viewModel.navigateToAssistantSettings() },
+        onListeningClicked = {
+            if (isListening) viewModel.stopListeningService()
+            else viewModel.startListeningService()
+        },
     )
 }
 
@@ -107,11 +103,11 @@ private fun SetupOptions(
     projectionToken: Intent?,
     latestMessage: String,
     version: String,
-    isDefaultAssistant: Boolean,
+    isListening: Boolean,
     onAccessibilityClicked: () -> Unit,
     onRevokeAccessibilityClicked: () -> Unit,
     onProjectionClicked: () -> Unit,
-    onAssistantClicked: () -> Unit,
+    onListeningClicked: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -158,17 +154,17 @@ private fun SetupOptions(
             Text(text = "Projection is ${if (projectionToken != null) "ON" else "OFF"}")
         }
 
-        // Assistant Button
+        // Start/Stop Listening Button
         Button(
-            onClick = onAssistantClicked,
+            onClick = onListeningClicked,
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (isDefaultAssistant) Color(0xFF99CC00) else Color.DarkGray,
+                containerColor = if (isListening) Color(0xFF99CC00) else Color.DarkGray,
             ),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(10.dp),
         ) {
-            Text(text = "Assistant is ${if (isDefaultAssistant) "ON" else "OFF"}")
+            Text(text = "Listening is ${if (isListening) "ON" else "OFF"}")
         }
 
         // Latest Message Text
@@ -235,13 +231,13 @@ fun PreviewSetupOptions() {
         networkStatus = true,
         accessibilityStatus = true,
         projectionToken = null,
+        isListening = true,
         latestMessage = "All systems operational",
         version = "v1.0.0",
-        isDefaultAssistant = true,
         onAccessibilityClicked = {},
         onRevokeAccessibilityClicked = {},
         onProjectionClicked = {},
-        onAssistantClicked = {},
+        onListeningClicked = {},
     )
 }
 

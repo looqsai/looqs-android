@@ -24,6 +24,9 @@ include(":core:datastore-proto")
 include(":core:model")
 include(":core:accessibility")
 include(":core:voice")
+include(":core:llm")
+include(":core:util")
+include(":core:actions")
 
 include(":feature:settings")
 

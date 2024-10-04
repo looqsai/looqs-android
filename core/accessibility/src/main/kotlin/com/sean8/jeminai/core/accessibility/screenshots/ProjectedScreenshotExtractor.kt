@@ -13,13 +13,13 @@ import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.android.scopes.ServiceScoped
 import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Once a user approved the projection permission, this class will help extract screenshots from the current screen.
  */
-@Singleton
+@ServiceScoped
 class ProjectedScreenshotExtractor @Inject constructor(
     @ApplicationContext private val context: Context,
     private val mediaProjectionManager: MediaProjectionManager,

@@ -18,20 +18,9 @@
                 android:resource="@xml/core_accessibility_config" />
         </service>
 
-        <service
-            android:name=".llm.ServerMockService"
-            android:exported="true"
-            android:foregroundServiceType="mediaProjection"
-            android:permission="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION">
-            <intent-filter>
-                <action android:name="com.sean8.jeminai.ACTION_TRIGGER_XRAY" />
-            </intent-filter>
-        </service>
-
         <!-- Text-to-Speech Service -->
         <service
             android:name=".tts.TextToSpeechHelper"
             android:exported="false" />
-
     </application>
 </manifest>

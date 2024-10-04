@@ -6,7 +6,6 @@ import android.accessibilityservice.GestureDescription
 import android.content.Context
 import android.content.Intent
 import android.graphics.Path
-import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
@@ -15,15 +14,12 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityManager
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
-import androidx.annotation.RequiresApi
 import androidx.core.view.accessibility.AccessibilityEventCompat.TYPE_WINDOWS_CHANGED
-import com.sean8.jeminai.core.accessibility.actions.Action
 import com.sean8.jeminai.core.accessibility.tts.TextToSpeechHelper
-import com.sean8.jeminai.core.accessibility.util.AccessibilityNodeInfoXmlDumper
-import com.sean8.jeminai.core.accessibility.util.TreeNode
 import com.sean8.jeminai.core.accessibility.util.defaultDisplay
-import com.sean8.jeminai.core.accessibility.util.getBoundsInScreen
-import com.sean8.jeminai.core.accessibility.util.populateChildren
+import com.sean8.jeminai.core.actions.Action
+import com.sean8.jeminai.core.util.getBoundsInScreen
+import com.sean8.jeminai.core.util.populateChildren
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,8 +39,13 @@ class AppAccessibilityService : AccessibilityService() {
 
     private val serviceScope = CoroutineScope(Dispatchers.Main)
 
+    override fun onCreate() {
+        super.onCreate()
+        instance = this
+    }
+
     override fun onDestroy() {
-        accessibilityComponent = null
+        instance = null
         super.onDestroy()
 
         AccessibilityStatusManager.setServiceEnabled(false)
@@ -53,21 +54,16 @@ class AppAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         Log.d(TAG, "onServiceConnected, info: $serviceInfo")
 
-        // TODO: God forgive this horrible spaghetti memory leak hell. Will fix later
-        accessibilityComponent = this
-
         AccessibilityStatusManager.setServiceEnabled(true)
     }
 
-    @RequiresApi(VERSION_CODES.P)
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val source: AccessibilityNodeInfo? = event?.source
 
-        Log.d(TAG, "Event received: ${event.toString()}")
+        Log.d(TAG, "Event received: ${event.toString()} , Source Node found? $source")
 
-        Log.d(TAG, "Source Node found? $source")
-
-        if (source != null) {
+        // TODO: Log?
+        if (false && source != null) {
             val tree = getActiveWindowTree()
             val xml = tree?.toXml()
             Log.d(TAG, xml.toString())
@@ -94,12 +90,13 @@ class AppAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun getActiveWindowTree(): TreeNode<AccessibilityNodeInfo>? {
+    private fun getActiveWindowTree(): com.sean8.jeminai.core.util.TreeNode<AccessibilityNodeInfo>? {
         val timeBeforeBuild = System.currentTimeMillis()
-        val rootTree = TreeNode(rootInActiveWindow)
+        val rootTree = com.sean8.jeminai.core.util.TreeNode(rootInActiveWindow)
 
         return if (rootTree.populateChildren()) {
-            Log.d(
+            // TODO: need log?
+            if (false) Log.d(
                 TAG,
                 "Snapshot 🗂 (" +
                     "time=${
@@ -118,8 +115,11 @@ class AppAccessibilityService : AccessibilityService() {
     private fun isPackageOnFront(appPackage: String) =
         rootInActiveWindow.packageName?.toString() == appPackage
 
-    private fun TreeNode<AccessibilityNodeInfo>.toXml(printToFile: Boolean = true): String =
-        AccessibilityNodeInfoXmlDumper.getXml(this, this@AppAccessibilityService.defaultDisplay)
+    private fun com.sean8.jeminai.core.util.TreeNode<AccessibilityNodeInfo>.toXml(printToFile: Boolean = true): String =
+        com.sean8.jeminai.core.util.AccessibilityNodeInfoXmlDumper.getXml(
+            this,
+            this@AppAccessibilityService.defaultDisplay,
+        )
 
     private fun getKeyboardWindow() =
         windows.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
@@ -135,7 +135,8 @@ class AppAccessibilityService : AccessibilityService() {
         getSystemService(Context.WINDOW_SERVICE) as WindowManager?
 
     /** Gets the root in active window and populates it **/
-    fun populatedRoot() = TreeNode(this.root!!).apply { populateChildren() }
+    fun populatedRoot() =
+        com.sean8.jeminai.core.util.TreeNode(this.root!!).apply { populateChildren() }
 
     /** Returns failure reason if failed **/
     suspend fun launchAppAndWaitForIt(packageName: String): String? {
@@ -254,8 +255,11 @@ class AppAccessibilityService : AccessibilityService() {
     companion object {
         private const val ACTION_DISABLE_ACCESSIBILITY = "core.app.accessibility.disable"
 
-        // TODO: Fix this horrible workaround
-        var accessibilityComponent: AppAccessibilityService? = null
+        // Hilt can't create Android components so we are using this last resort hack
+        private var instance: AppAccessibilityService? = null
+        fun getInstance(): AppAccessibilityService? {
+            return instance
+        }
 
         const val SYSTEM_UI_PACKAGE = "com.android.systemui"
 

@@ -1,10 +1,8 @@
 package com.sean8.jeminai.core.accessibility.ui
 
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.provider.Settings
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -16,6 +14,7 @@ import com.sean8.jeminai.core.accessibility.connectivity.NetworkMonitor
 import com.sean8.jeminai.core.accessibility.screenshots.ProjectionState
 import com.sean8.jeminai.core.accessibility.util.Event
 import com.sean8.jeminai.core.data.repository.UserDataRepository
+import com.sean8.jeminai.core.voice.ContinuousVoiceService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
@@ -53,32 +52,12 @@ class SetupViewModel @Inject constructor(
     private val _requestProjectionPermission = MutableLiveData<Event<Unit>>()
     val requestProjectionPermission: LiveData<Event<Unit>> get() = _requestProjectionPermission
 
-    // New LiveData to track assistant status
-    private val _isDefaultAssistant = MutableLiveData<Boolean>()
-    val isDefaultAssistant: LiveData<Boolean> get() = _isDefaultAssistant
-
     // Event to navigate to assistant settings
     private val _navigateToAssistantSettings = MutableLiveData<Event<Unit>>()
     val navigateToAssistantSettings: LiveData<Event<Unit>> get() = _navigateToAssistantSettings
 
-    init {
-        checkIfDefaultAssistant()
-    }
-
-    // Method to check if the app is the default assistant
-    fun checkIfDefaultAssistant() {
-        val assistantComponent = Settings.Secure.getString(
-            context.contentResolver,
-            "assistant", // TODO: Settings.Secure.ASSISTANT
-        )
-        val defaultAssistant = ComponentName.unflattenFromString(assistantComponent ?: "")
-        val myAssistant = ComponentName(
-            context,
-            "com.sean8.jeminai/com.sean8.jeminai.core.voice.MyVoiceInteractionService",
-        )
-        val isDefault = defaultAssistant == myAssistant
-        _isDefaultAssistant.value = isDefault
-    }
+    private val _isListening = MutableLiveData<Boolean>(false)
+    val isListening: LiveData<Boolean> get() = _isListening
 
     // Method to navigate to assistant settings
     fun navigateToAssistantSettings() {
@@ -103,6 +82,18 @@ class SetupViewModel @Inject constructor(
         viewModelScope.launch {
             userDataRepository.setProjectionApproved(true)
         }
+    }
+
+    fun startListeningService() {
+        val intent = Intent(context, ContinuousVoiceService::class.java)
+        context.startForegroundService(intent)
+        _isListening.value = true
+    }
+
+    fun stopListeningService() {
+        val intent = Intent(context, ContinuousVoiceService::class.java)
+        context.stopService(intent)
+        _isListening.value = false
     }
 
     val appVersion: String =

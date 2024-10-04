@@ -10,6 +10,6 @@ android {
 
 dependencies {
     implementation(libs.hilt.coroutines)
-
-    implementation(projects.core.accessibility)
+    implementation(projects.core.util)
+    implementation(projects.core.llm)
 }
