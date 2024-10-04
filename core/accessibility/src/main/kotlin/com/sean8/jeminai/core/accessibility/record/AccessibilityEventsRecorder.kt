@@ -15,9 +15,10 @@ class AccessibilityEventsRecorder @Inject constructor(
     @ApplicationScope private val scope: CoroutineScope,
     private val eventBus: AccessibilityEventBus,
 ) {
-    private val MAX_EVENT_HISTORY = 100
+    private val MAX_EVENT_HISTORY = 50
 
-    private val _eventFlow = MutableSharedFlow<AccessibilityEvent>(extraBufferCapacity = 64)
+    private val _eventFlow =
+        MutableSharedFlow<AccessibilityEvent>(extraBufferCapacity = MAX_EVENT_HISTORY)
     val eventFlow = _eventFlow.asSharedFlow()
 
     // Buffer to store events since the last consumption
