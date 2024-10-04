@@ -7,12 +7,6 @@ import com.sean8.jeminai.core.actions.Action.SwipeAction
 import com.sean8.jeminai.core.actions.Action.TapAction
 import com.sean8.jeminai.core.actions.Action.TextAction
 import com.sean8.jeminai.core.actions.Action.TextEditorAction
-import com.sean8.jeminai.core.actions.ActionType.DeviceKey
-import com.sean8.jeminai.core.actions.ActionType.LongClick
-import com.sean8.jeminai.core.actions.ActionType.Scroll
-import com.sean8.jeminai.core.actions.ActionType.Swipe
-import com.sean8.jeminai.core.actions.ActionType.Tap
-import com.sean8.jeminai.core.actions.ActionType.Text
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -21,16 +15,13 @@ object MoshiConfig {
     val moshi: Moshi = Moshi.Builder()
         .add(
             PolymorphicJsonAdapterFactory.of(Action::class.java, "type")
-                .withSubtype(TapAction::class.java, Tap.serverName)
-                .withSubtype(LongClickAction::class.java, LongClick.serverName)
-                .withSubtype(SwipeAction::class.java, Swipe.serverName)
-                .withSubtype(ScrollAction::class.java, Scroll.serverName)
-                .withSubtype(DeviceKeyAction::class.java, DeviceKey.serverName)
-                .withSubtype(TextAction::class.java, Text.serverName)
-                .withSubtype(
-                    TextEditorAction::class.java,
-                    ActionType.TextEditorAction.serverName,
-                ),
+                .withSubtype(TapAction::class.java, ActionType.Tap.serverName)
+                .withSubtype(LongClickAction::class.java, ActionType.LongClick.serverName)
+                .withSubtype(SwipeAction::class.java, ActionType.Swipe.serverName)
+                .withSubtype(ScrollAction::class.java, ActionType.Scroll.serverName)
+                .withSubtype(DeviceKeyAction::class.java, ActionType.DeviceKey.serverName)
+                .withSubtype(TextAction::class.java, ActionType.Text.serverName)
+                .withSubtype(TextEditorAction::class.java, ActionType.TextEditorAction.serverName),
         )
         .add(KotlinJsonAdapterFactory())
         .build()

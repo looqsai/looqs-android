@@ -1,6 +1,5 @@
 package com.sean8.jeminai
 
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -23,7 +22,6 @@ import com.sean8.jeminai.core.model.DarkThemeConfig.DARK
 import com.sean8.jeminai.core.model.DarkThemeConfig.FOLLOW_SYSTEM
 import com.sean8.jeminai.core.model.DarkThemeConfig.LIGHT
 import com.sean8.jeminai.ui.theme.AppTheme
-import com.sean8.jeminai.util.ServerMockService
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
@@ -40,10 +38,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // TODO ...
-        val serviceIntent = Intent(this, ServerMockService::class.java)
-        this.startForegroundService(serviceIntent)
 
         var uiState: MainActivityUiState by mutableStateOf(Loading)
 

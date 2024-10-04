@@ -1,5 +1,6 @@
 package com.sean8.jeminai.core.accessibility.ui
 
+import android.Manifest
 import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
@@ -8,7 +9,6 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,13 +17,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -46,6 +44,12 @@ fun SetupScreen(
     val latestMessage by viewModel.latestMessage.observeAsState(initial = "")
     val version = viewModel.appVersion
     val isListening by viewModel.isListening.observeAsState(initial = false)
+    val isAudioPermissionGranted by viewModel.isAudioPermissionGranted.observeAsState(initial = false)
+
+    // Check audio permission on launch
+    LaunchedEffect(Unit) {
+        viewModel.checkAudioPermission()
+    }
 
     // Handle navigation to accessibility settings
     val navigateToAccessibility by viewModel.navigateToAccessibility.observeAsState()
@@ -53,15 +57,8 @@ fun SetupScreen(
         context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
-    // Handle navigation to assistant settings
-    val navigateToAssistantSettings by viewModel.navigateToAssistantSettings.observeAsState()
-    navigateToAssistantSettings?.getContentIfNotHandled()?.let {
-        val intent = Intent(Settings.ACTION_VOICE_INPUT_SETTINGS)
-        context.startActivity(intent)
-    }
-
     // Handle projection permission request
-    val launcher = rememberLauncherForActivityResult(
+    val projectionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
         onResult = { result ->
             if (result.resultCode == RESULT_OK && result.data != null) {
@@ -75,7 +72,20 @@ fun SetupScreen(
         val projectionManager =
             context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val intent = projectionManager.createScreenCaptureIntent()
-        launcher.launch(intent)
+        projectionLauncher.launch(intent)
+    }
+
+    // Handle audio permission request
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            viewModel.onAudioPermissionResult(isGranted)
+        },
+    )
+
+    val requestAudioPermission by viewModel.requestAudioPermission.observeAsState()
+    requestAudioPermission?.getContentIfNotHandled()?.let {
+        audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     // Main UI
@@ -85,13 +95,17 @@ fun SetupScreen(
         projectionToken = projectionToken,
         latestMessage = latestMessage,
         version = version,
-        isListening = isListening, // Pass the new parameter
+        isListening = isListening,
+        isAudioPermissionGranted = isAudioPermissionGranted,
         onAccessibilityClicked = { viewModel.navigateToAccessibility() },
-        onRevokeAccessibilityClicked = { viewModel.revokeAccessibility() },
         onProjectionClicked = { viewModel.askProjection() },
+        onRequestAudioPermissionClicked = { viewModel.requestAudioPermission() },
         onListeningClicked = {
-            if (isListening) viewModel.stopListeningService()
-            else viewModel.startListeningService()
+            if (isListening) {
+                viewModel.stopListeningService()
+            } else {
+                viewModel.startListeningService()
+            }
         },
     )
 }
@@ -104,9 +118,10 @@ private fun SetupOptions(
     latestMessage: String,
     version: String,
     isListening: Boolean,
+    isAudioPermissionGranted: Boolean,
     onAccessibilityClicked: () -> Unit,
-    onRevokeAccessibilityClicked: () -> Unit,
     onProjectionClicked: () -> Unit,
+    onRequestAudioPermissionClicked: () -> Unit,
     onListeningClicked: () -> Unit,
 ) {
     Column(
@@ -115,57 +130,35 @@ private fun SetupOptions(
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        // Network Status Button
-        Button(
+        StatusButton(
+            text = "Network is ${if (networkStatus) "available" else "not available"}",
+            isActive = networkStatus,
             onClick = { /* No action specified */ },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (networkStatus) Color(0xFF99CC00) else Color.DarkGray,
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
-        ) {
-            Text(text = "Network is ${if (networkStatus) "available" else "not available"}")
-        }
+        )
 
-        // Accessibility Button with Long Click
-        LongClickButton(
+        StatusButton(
+            text = "Accessibility is ${if (accessibilityStatus) "ON" else "OFF"}",
+            isActive = accessibilityStatus,
             onClick = onAccessibilityClicked,
-            onLongClick = onRevokeAccessibilityClicked,
-            backgroundColor = if (accessibilityStatus) Color(0xFF99CC00) else Color.DarkGray,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
-        ) {
-            Text(text = "Accessibility is ${if (accessibilityStatus) "ON" else "OFF"}")
-        }
+        )
 
-        // Projection Button
-        Button(
+        StatusButton(
+            text = "Projection is ${if (projectionToken != null) "ON" else "OFF"}",
+            isActive = projectionToken != null,
             onClick = onProjectionClicked,
-            enabled = projectionToken == null,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (projectionToken != null) Color(0xFF99CC00) else Color.DarkGray,
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
-        ) {
-            Text(text = "Projection is ${if (projectionToken != null) "ON" else "OFF"}")
-        }
+        )
 
-        // Start/Stop Listening Button
-        Button(
+        StatusButton(
+            text = "Audio Permission is ${if (isAudioPermissionGranted) "GRANTED" else "NOT GRANTED"}",
+            isActive = isAudioPermissionGranted,
+            onClick = onRequestAudioPermissionClicked,
+        )
+
+        StatusButton(
+            text = "Listening is ${if (isListening) "ON" else "OFF"}",
+            isActive = isListening,
             onClick = onListeningClicked,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (isListening) Color(0xFF99CC00) else Color.DarkGray,
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
-        ) {
-            Text(text = "Listening is ${if (isListening) "ON" else "OFF"}")
-        }
+        )
 
         // Latest Message Text
         Text(
@@ -190,39 +183,29 @@ private fun SetupOptions(
     }
 }
 
-// Custom Button to handle long clicks
+// Custom StatusButton to ensure consistent styling
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun LongClickButton(
+fun StatusButton(
+    text: String,
+    isActive: Boolean,
     onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    backgroundColor: Color,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
 ) {
-    Surface(
-        color = backgroundColor,
-        shape = MaterialTheme.shapes.small,
+    val backgroundColor = if (isActive) Color(0xFF99CC00) else Color.DarkGray
+
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = backgroundColor,
+        ),
         modifier = modifier
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-            ),
+            .fillMaxWidth()
+            .padding(10.dp),
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(16.dp),
-        ) {
-            content()
-        }
+        Text(text = text)
     }
 }
-
-//@Preview(showBackground = true)
-//@Composable
-//fun PreviewSetupScreen() {
-//    SetupScreen()
-//}
 
 @Preview(showBackground = true)
 @Composable
@@ -231,24 +214,23 @@ fun PreviewSetupOptions() {
         networkStatus = true,
         accessibilityStatus = true,
         projectionToken = null,
-        isListening = true,
-        latestMessage = "All systems operational",
-        version = "v1.0.0",
-        onAccessibilityClicked = {},
-        onRevokeAccessibilityClicked = {},
-        onProjectionClicked = {},
-        onListeningClicked = {},
+        latestMessage = "All systems are functional",
+        version = "Version 1.0.0",
+        isListening = false,
+        isAudioPermissionGranted = true,
+        onAccessibilityClicked = { /* No action */ },
+        onProjectionClicked = { /* No action */ },
+        onRequestAudioPermissionClicked = { /* No action */ },
+        onListeningClicked = { /* No action */ },
     )
 }
 
 @Preview(showBackground = true)
 @Composable
-fun PreviewLongClickButton() {
-    LongClickButton(
-        onClick = {},
-        onLongClick = {},
-        backgroundColor = Color.Green,
-    ) {
-        Text(text = "Long Click Button")
-    }
+fun PreviewStatusButton() {
+    StatusButton(
+        text = "Network is available",
+        isActive = true,
+        onClick = { /* No action */ },
+    )
 }

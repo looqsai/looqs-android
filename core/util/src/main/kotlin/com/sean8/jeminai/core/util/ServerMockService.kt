@@ -1,4 +1,4 @@
-package com.sean8.jeminai.util
+package com.sean8.jeminai.core.util
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -9,19 +9,16 @@ import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.sean8.jeminai.core.accessibility.llm.PromptConstants
 import com.sean8.jeminai.core.llm.LLMResponse
 import com.sean8.jeminai.core.llm.LLMService
-import com.sean8.jeminai.core.util.AccessibilityHelper
-import com.sean8.jeminai.core.util.AccessibilityNodeInfoXmlDumper
-import com.sean8.jeminai.core.util.TreeNode
-import com.sean8.jeminai.core.util.encodeBitmapToBase64
-import com.sean8.jeminai.core.util.populateChildren
+import com.sean8.jeminai.core.llm.PromptConstants
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
+import javax.inject.Provider
 
 @AndroidEntryPoint
 class ServerMockService : Service() {
@@ -30,6 +27,8 @@ class ServerMockService : Service() {
     lateinit var llmService: LLMService
 
     @Inject
+    lateinit var accessibilityHelperLazy: Provider<AccessibilityHelper>
+
     lateinit var accessibilityHelper: AccessibilityHelper
 
     private val serviceScope = CoroutineScope(Dispatchers.IO)
@@ -42,6 +41,8 @@ class ServerMockService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        accessibilityHelper = accessibilityHelperLazy.get()
+
         serviceScope.launch {
             handleIntent(intent)
         }
@@ -50,14 +51,41 @@ class ServerMockService : Service() {
 
     private suspend fun handleIntent(intent: Intent?) {
         when (intent?.action) {
-            ACTION_PROCESS_VOICE_INPUT -> {
-                val userMessage = intent.getStringExtra(EXTRA_VOICE_INPUT) ?: ""
-                Log.d(TAG, "Received voice input: $userMessage")
-                captureAndSendData(userMessage = userMessage, isRequestEcho = false)
+            ACTION_PROCESS_AUDIO_INPUT -> {
+                val audioFilePath = intent.getStringExtra(EXTRA_AUDIO_FILE_PATH)
+                Log.d(TAG, "Received audio file path: $audioFilePath")
+                if (audioFilePath != null) {
+                    val transcribedText = transcribeAudioFile(audioFilePath)
+                    if (transcribedText != null) {
+                        Log.d(TAG, "Transcribed Text: $transcribedText")
+                        captureAndSendData(userMessage = transcribedText, isRequestEcho = false)
+                    } else {
+                        Log.e(TAG, "Failed to transcribe audio")
+                    }
+                } else {
+                    Log.e(TAG, "Audio file path is null")
+                }
             }
             else -> {
                 Log.d(TAG, "Unknown action received")
             }
+        }
+    }
+
+    private suspend fun transcribeAudioFile(audioFilePath: String): String? {
+        Log.d(TAG, "Transcribing audio file: $audioFilePath")
+        val audioFile = File(audioFilePath)
+        if (!audioFile.exists()) {
+            Log.e(TAG, "Audio file does not exist")
+            return null
+        }
+
+        // Send the audio file to LLM Whisper API for transcription
+        return try {
+            llmService.transcribeAudio(audioFile)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error transcribing audio", e)
+            null
         }
     }
 
@@ -98,9 +126,14 @@ class ServerMockService : Service() {
         // Send message to LLM with image
         try {
             val llmResponse = llmService.sendMessage(prompt, screenshotBase64)
-            Log.d(TAG, "Received LLM Response")
-            // Process the response
-            processLLMResponse(llmResponse)
+            Log.d(TAG, "Received LLM Response: $llmResponse")
+
+            if (llmResponse != null) {
+                processLLMResponse(llmResponse)
+            } else {
+                Log.w(TAG, "Exit due to null llmResponse")
+            }
+
         } catch (e: Exception) {
             Log.e(TAG, "Error sending message to LLM Service", e)
         }
@@ -121,10 +154,10 @@ class ServerMockService : Service() {
             accessibilityHelper.performAction(action)
         }
 
-        // After performing actions, send Request-Echo
-        serviceScope.launch {
-            captureAndSendData(userMessage = "", isRequestEcho = true)
-        }
+        // TODO: After performing actions, send Request-Echo. Need more logic so it won't be infinite loop
+//        serviceScope.launch {
+//            captureAndSendData(userMessage = "", isRequestEcho = true)
+//        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -151,7 +184,7 @@ class ServerMockService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 1
-        const val ACTION_PROCESS_VOICE_INPUT = "com.sean8.jeminai.ACTION_PROCESS_VOICE_INPUT"
-        const val EXTRA_VOICE_INPUT = "extra_voice_input"
+        const val ACTION_PROCESS_AUDIO_INPUT = "com.sean8.jeminai.ACTION_PROCESS_AUDIO_INPUT"
+        const val EXTRA_AUDIO_FILE_PATH = "extra_audio_file_path"
     }
 }

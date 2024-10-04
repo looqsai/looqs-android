@@ -1,4 +1,4 @@
-package com.sean8.jeminai.core.accessibility.llm
+package com.sean8.jeminai.core.llm
 
 object PromptConstants {
     val GENERAL_PROMPT = """

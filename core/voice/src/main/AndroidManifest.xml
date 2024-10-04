@@ -5,12 +5,15 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
-
     <application>
         <!-- Continuous Voice Service -->
         <service
-            android:name=".ContinuousVoiceService"
+            android:name=".AudioRecordingService"
             android:exported="true"
-            android:foregroundServiceType="microphone" />
+            android:foregroundServiceType="microphone">
+            <intent-filter>
+                <action android:name="com.sean8.jeminai.ACTION_START_RECORDING" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.project.android.library)
     alias(libs.plugins.project.hilt)
@@ -6,6 +8,19 @@ plugins {
 
 android {
     namespace = "com.sean8.jeminai.core.llm"
+
+    buildFeatures.buildConfig = true
+    defaultConfig.buildConfigField("String", "OPENAI_API_KEY", "\"${getOpenAiApiKey()}\"")
+}
+
+fun getOpenAiApiKey(): String {
+    val properties = Properties()
+    val localPropertiesFile = project.rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        properties.load(localPropertiesFile.inputStream())
+        return properties.getProperty("OPENAI_API_KEY", "mock_api_key")
+    }
+    return "mock_api_key"
 }
 
 dependencies {
@@ -22,6 +37,9 @@ dependencies {
     implementation(libs.hilt.coroutines)
     implementation(projects.core.actions)
 
+    api(libs.moshi.adapters)
+    implementation(libs.moshi)
+    implementation(libs.moshi.reflection)
+    implementation(libs.moshi.codegen)
     ksp(libs.moshi.codegen)
-
 }
