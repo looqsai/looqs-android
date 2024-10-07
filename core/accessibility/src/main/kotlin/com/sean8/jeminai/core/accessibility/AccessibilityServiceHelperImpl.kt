@@ -4,17 +4,17 @@ import android.graphics.Bitmap
 import android.view.Display
 import android.view.accessibility.AccessibilityNodeInfo
 import com.sean8.jeminai.core.accessibility.screenshots.ProjectedScreenshotExtractor
+import com.sean8.jeminai.core.accessibility.util.AccessibilityServiceHelper
 import com.sean8.jeminai.core.actions.Action
-import com.sean8.jeminai.core.util.AccessibilityHelper
 import com.sean8.jeminai.core.util.defaultDisplay
 import dagger.hilt.android.scopes.ServiceScoped
 import javax.inject.Inject
 
 @ServiceScoped
-class AccessibilityHelperImpl @Inject constructor(
+class AccessibilityServiceHelperImpl @Inject constructor(
     private val accessibilityService: AppAccessibilityService?,
     private val screenshotExtractor: ProjectedScreenshotExtractor,
-) : AccessibilityHelper {
+) : AccessibilityServiceHelper {
 
     override fun getRootNode(): AccessibilityNodeInfo? {
         return accessibilityService?.rootInActiveWindow

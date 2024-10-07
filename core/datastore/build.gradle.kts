@@ -23,5 +23,5 @@ dependencies {
     api(libs.androidx.dataStore)
 
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(project(":core:testing"))
+    testImplementation(projects.core.testing)
 }

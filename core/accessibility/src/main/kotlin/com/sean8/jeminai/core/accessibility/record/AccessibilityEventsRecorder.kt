@@ -5,7 +5,6 @@ import com.sean8.core.hiltcoroutines.di.ApplicationScope
 import com.sean8.jeminai.core.accessibility.AccessibilityEventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,7 +18,6 @@ class AccessibilityEventsRecorder @Inject constructor(
 
     private val _eventFlow =
         MutableSharedFlow<AccessibilityEvent>(extraBufferCapacity = MAX_EVENT_HISTORY)
-    val eventFlow = _eventFlow.asSharedFlow()
 
     // Buffer to store events since the last consumption
     private val eventBuffer = mutableListOf<AccessibilityEvent>()

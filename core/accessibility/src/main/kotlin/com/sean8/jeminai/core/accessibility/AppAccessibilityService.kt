@@ -16,10 +16,12 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import androidx.core.view.accessibility.AccessibilityEventCompat.TYPE_WINDOWS_CHANGED
 import com.sean8.jeminai.core.accessibility.tts.TextToSpeechHelper
+import com.sean8.jeminai.core.accessibility.util.AccessibilityNodeInfoXmlDumper
+import com.sean8.jeminai.core.accessibility.util.TreeNode
 import com.sean8.jeminai.core.accessibility.util.defaultDisplay
+import com.sean8.jeminai.core.accessibility.util.populateChildren
 import com.sean8.jeminai.core.actions.Action
 import com.sean8.jeminai.core.util.getBoundsInScreen
-import com.sean8.jeminai.core.util.populateChildren
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -60,14 +62,7 @@ class AppAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val source: AccessibilityNodeInfo? = event?.source
 
-        Log.d(TAG, "Event received: ${event.toString()} , Source Node found? $source")
-
-        // TODO: Log?
-        if (false && source != null) {
-            val tree = getActiveWindowTree()
-            val xml = tree?.toXml()
-            Log.d(TAG, xml.toString())
-        }
+        Log.v(TAG, "Event received: ${event.toString()} , Source Node found? $source")
 
         event?.let {
             emitAccessibilityEvent(it)
@@ -90,9 +85,9 @@ class AppAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun getActiveWindowTree(): com.sean8.jeminai.core.util.TreeNode<AccessibilityNodeInfo>? {
+    private fun getActiveWindowTree(): TreeNode<AccessibilityNodeInfo>? {
         val timeBeforeBuild = System.currentTimeMillis()
-        val rootTree = com.sean8.jeminai.core.util.TreeNode(rootInActiveWindow)
+        val rootTree = TreeNode(rootInActiveWindow)
 
         return if (rootTree.populateChildren()) {
             // TODO: need log?
@@ -115,8 +110,8 @@ class AppAccessibilityService : AccessibilityService() {
     private fun isPackageOnFront(appPackage: String) =
         rootInActiveWindow.packageName?.toString() == appPackage
 
-    private fun com.sean8.jeminai.core.util.TreeNode<AccessibilityNodeInfo>.toXml(printToFile: Boolean = true): String =
-        com.sean8.jeminai.core.util.AccessibilityNodeInfoXmlDumper.getXml(
+    private fun TreeNode<AccessibilityNodeInfo>.toXml(printToFile: Boolean = true): String =
+        AccessibilityNodeInfoXmlDumper.getXml(
             this,
             this@AppAccessibilityService.defaultDisplay,
         )
@@ -136,7 +131,7 @@ class AppAccessibilityService : AccessibilityService() {
 
     /** Gets the root in active window and populates it **/
     fun populatedRoot() =
-        com.sean8.jeminai.core.util.TreeNode(this.root!!).apply { populateChildren() }
+        TreeNode(this.root!!).apply { populateChildren() }
 
     /** Returns failure reason if failed **/
     suspend fun launchAppAndWaitForIt(packageName: String): String? {

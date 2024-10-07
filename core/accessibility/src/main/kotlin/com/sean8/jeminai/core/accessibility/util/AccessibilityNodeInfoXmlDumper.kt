@@ -1,10 +1,13 @@
-package com.sean8.jeminai.core.util
+package com.sean8.jeminai.core.accessibility.util
 
 import android.util.Log
 import android.util.Xml
 import android.view.Display
 import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
+import com.sean8.jeminai.core.util.getShortBoundsInScreen
+import com.sean8.jeminai.core.util.screenHeight
+import com.sean8.jeminai.core.util.screenWidth
 import org.xmlpull.v1.XmlSerializer
 import java.io.ByteArrayOutputStream
 import java.io.IOException

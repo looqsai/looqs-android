@@ -14,22 +14,16 @@ dependencies {
     implementation(libs.commons.codec)
     implementation(libs.androidx.foundation.android)
     implementation(libs.androidx.tracing.ktx)
-    implementation(libs.androidx.lifecycle.viewModelCompose)
-    implementation(libs.androidx.lifecycle.livedata)
-    implementation(libs.androidx.compose.runtime.livedata)
-    implementation(libs.androidx.material3.android)
     implementation(libs.hilt.coroutines)
-    implementation(projects.core.data)
-    implementation(projects.core.util)
-    implementation(projects.core.llm)
-    implementation(projects.core.actions)
+
+    api(projects.core.util)
+    api(projects.core.actions)
 
     // TODO: Needed here?
     implementation(libs.moshi)
     implementation(libs.moshi.reflection)
     implementation(libs.moshi.adapters)
     implementation(libs.moshi.codegen)
-    implementation(project(":core:voice"))
     ksp(libs.moshi.codegen)
 
     testImplementation(libs.kotlinx.coroutines.test)

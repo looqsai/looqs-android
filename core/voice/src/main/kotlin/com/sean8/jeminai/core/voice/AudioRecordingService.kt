@@ -5,26 +5,28 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
-import android.media.MediaRecorder
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.sean8.jeminai.core.util.ServerMockService
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.IOException
+import java.io.File
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class AudioRecordingService : Service() {
-
     private val TAG = "AudioRecordingService"
-    private var mediaRecorder: MediaRecorder? = null
-    private var outputFilePath: String? = null
     private val serviceScope = CoroutineScope(Dispatchers.IO)
+
+    @Inject
+    lateinit var audioRecorder: AudioRecorder
+
+    @Inject
+    lateinit var voiceTransmitter: VoiceTransmitter
 
     companion object {
         const val ACTION_START_RECORDING = "com.sean8.jeminai.ACTION_START_RECORDING"
@@ -37,6 +39,8 @@ class AudioRecordingService : Service() {
         super.onCreate()
         Log.d(TAG, "Service created")
         startForegroundService()
+
+        Log.d(TAG, "VoiceTransmitter instance: $voiceTransmitter")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -51,11 +55,19 @@ class AudioRecordingService : Service() {
             ACTION_START_RECORDING -> {
                 val duration =
                     intent.getIntExtra(EXTRA_RECORDING_DURATION, DEFAULT_RECORDING_DURATION)
+
                 Log.d(TAG, "Starting recording for $duration seconds")
-                startRecording()
+
+                // Use internal cache directory to store the recording
+                val outputFilePath =
+                    "${cacheDir.absolutePath}/recording_${System.currentTimeMillis()}.m4a"
+                Log.d(TAG, "Output file: $outputFilePath")
+
+                audioRecorder.startRecording(outputFilePath)
                 delay(duration * 1000L)
-                stopRecording()
-                sendAudioToLLMService()
+                audioRecorder.stopRecording()
+
+                voiceTransmitter.postNewRecording(File(outputFilePath))
             }
 
             else -> {
@@ -64,55 +76,10 @@ class AudioRecordingService : Service() {
         }
     }
 
-    private fun startRecording() {
-        // Use internal cache directory to store the recording
-        outputFilePath = "${cacheDir.absolutePath}/recording_${System.currentTimeMillis()}.m4a"
-        Log.d(TAG, "Output file: $outputFilePath")
-
-        mediaRecorder = MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setOutputFile(outputFilePath)
-            try {
-                prepare()
-                start()
-                Log.d(TAG, "Recording started")
-            } catch (e: IOException) {
-                Log.e(TAG, "Failed to start recording", e)
-            }
-        }
-    }
-
-    private fun stopRecording() {
-        try {
-            mediaRecorder?.apply {
-                stop()
-                release()
-            }
-            mediaRecorder = null
-            Log.d(TAG, "Recording stopped")
-        } catch (e: RuntimeException) {
-            Log.e(TAG, "Failed to stop recording", e)
-        }
-    }
-
-    private fun sendAudioToLLMService() {
-        Log.d(TAG, "Sending audio to LLM Service")
-        val intent = Intent(this, ServerMockService::class.java).apply {
-            action = ServerMockService.ACTION_PROCESS_AUDIO_INPUT
-            putExtra(ServerMockService.EXTRA_AUDIO_FILE_PATH, outputFilePath)
-        }
-        startService(intent)
-
-        // TODO: Delete audio later?
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "Service destroyed")
-        mediaRecorder?.release()
-        mediaRecorder = null
+
         serviceScope.cancel()
     }
 

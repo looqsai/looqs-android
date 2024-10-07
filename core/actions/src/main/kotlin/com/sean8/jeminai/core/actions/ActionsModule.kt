@@ -10,18 +10,18 @@ import com.squareup.moshi.JsonClass
 
 // Enum for action types
 enum class ActionType(val serverName: String) {
-    DeviceKey("android-device-key"),
-    Tap("android-tap"),
-    LongClick("android-long-click"),
-    Swipe("android-swipe"),
-    Scroll("android-scroll"),
+    DeviceKey("device-key"),
+    Tap("tap"),
+    LongClick("long-click"),
+    Swipe("swipe"),
+    Scroll("scroll"),
     Text("text"),
-    TextEditorAction("android-key-board-special-keys")
+    TextEditorAction("keyboard-special-keys")
 }
 
 // Base action class
 @JsonClass(generateAdapter = true, generator = "sealed:type")
-sealed class Action {
+abstract class Action {
     abstract val type: String
 
     @JsonClass(generateAdapter = true)
@@ -33,8 +33,8 @@ sealed class Action {
     @JsonClass(generateAdapter = true)
     data class TapAction(
         override val type: String = Tap.serverName,
-        val attributes: Map<String, String> = emptyMap(),
-        val pathToElement: List<Int>,
+//        val attributes: Map<String, String> = emptyMap(),
+//        val pathToElement: List<Int>,
         val x: Float,
         val y: Float,
     ) : Action()
@@ -79,7 +79,7 @@ sealed class Action {
 
     @JsonClass(generateAdapter = true)
     data class TextEditorAction(
-        override val type: String = com.sean8.jeminai.core.actions.ActionType.TextEditorAction.serverName,
+        override val type: String = ActionType.TextEditorAction.serverName,
         val action: String,
     ) : Action()
 

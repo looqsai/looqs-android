@@ -1,4 +1,4 @@
-package com.sean8.jeminai.core.util
+package com.sean8.jeminai.core.accessibility.util
 
 open class TreeNode<T : Any>(var value: T) {
     var parent: TreeNode<T>? = null

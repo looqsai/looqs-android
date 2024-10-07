@@ -1,4 +1,4 @@
-package com.sean8.jeminai.core.util
+package com.sean8.jeminai.core.accessibility.util
 
 import android.view.accessibility.AccessibilityNodeInfo
 

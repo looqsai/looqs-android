@@ -57,7 +57,7 @@ class ChatGPTService @Inject constructor() : LLMService {
         val requestData = ChatGPTRequest(
             model = "gpt-4o-mini",
             messages = listOf(userMessage),
-            max_tokens = 500,
+            max_tokens = 1000,
         )
 
         // Serialize the request

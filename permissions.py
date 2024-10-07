@@ -20,13 +20,8 @@ def run_adb_command(command):
 
 # Grant permissions
 def grant_permissions():
-    print("Granting permissions...")
+    print("Granting permission RECORD_AUDIO...")
     run_adb_command(f"shell pm grant {package_name} android.permission.RECORD_AUDIO")
-
-# Set voice interaction service
-def set_voice_interaction_service():
-    print("Setting default voice interaction service...")
-    run_adb_command(f"shell settings put secure voice_interaction_service {voice_interaction_service}")
 
 # Enable accessibility service
 def enable_accessibility_service():
@@ -34,17 +29,10 @@ def enable_accessibility_service():
     run_adb_command(f"shell settings put secure enabled_accessibility_services {accessibility_service}")
     run_adb_command("shell settings put secure accessibility_enabled 1")
 
-# Start voice interaction service
-def start_voice_interaction_service():
-    print("Starting voice interaction service...")
-    run_adb_command("shell am start-voice-interaction")
-
 # Run all setup steps
 def setup_services():
     grant_permissions()
-    set_voice_interaction_service()
     enable_accessibility_service()
-    start_voice_interaction_service()
 
 if __name__ == "__main__":
     setup_services()

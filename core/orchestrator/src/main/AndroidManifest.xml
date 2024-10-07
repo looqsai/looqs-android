@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <service
+            android:name=".OrchestratorService"
+            android:exported="false"
+            android:foregroundServiceType="microphone|mediaProjection"
+            android:permission="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"></service>
+    </application>
+</manifest>

@@ -16,24 +16,24 @@ object PromptConstants {
         - **Action Types**: The actions should correspond to the following types, each with specific required fields:
 
           1. **DeviceKey**:
-             - **Type**: `"android-device-key"`
+             - **Type**: `"device-key"`
              - **Fields**:
                - `"serverAction"`: An integer representing the key code (e.g., `KeyEvent.KEYCODE_BACK`).
 
           2. **Tap**:
-             - **Type**: `"android-tap"`
+             - **Type**: `"tap"`
              - **Fields**:
                - `"attributes"`: An object containing UI element attributes.
                - `"pathToElement"`: An array representing the path to the UI element.
                - `"x"` and `"y"`: Floats indicating the tap coordinates.
 
           3. **LongClick**:
-             - **Type**: `"android-long-click"`
+             - **Type**: `"long-click"`
              - **Fields**:
                - Same as **Tap**, but the action is a long press.
 
           4. **Swipe**:
-             - **Type**: `"android-swipe"`
+             - **Type**: `"swipe"`
              - **Fields**:
                - `"start"`: An object with `"x"` and `"y"` coordinates for the start point.
                - `"end"`: An object with `"x"` and `"y"` coordinates for the end point.
@@ -41,7 +41,7 @@ object PromptConstants {
                - `"direction"`: A string indicating swipe direction (e.g., `"left"`, `"right"`).
 
           5. **Scroll**:
-             - **Type**: `"android-scroll"`
+             - **Type**: `"scroll"`
              - **Fields**:
                - Same as **Swipe**, but specifically for scroll actions.
 
@@ -53,7 +53,7 @@ object PromptConstants {
                - `"text"`: The string to input into a text field.
 
           7. **TextEditorAction**:
-             - **Type**: `"android-key-board-special-keys"`
+             - **Type**: `"keyboard-special-keys"`
              - **Fields**:
                - `"action"`: A string representing the keyboard action (e.g., `"done"`, `"next"`, `"send"`).
 

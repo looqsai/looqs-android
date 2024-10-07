@@ -31,11 +31,10 @@ dependencies {
     implementation(libs.androidx.foundation.android)
     implementation(libs.androidx.tracing.ktx)
     implementation(libs.androidx.lifecycle.viewModelCompose)
-    implementation(libs.androidx.lifecycle.livedata)
-    implementation(libs.androidx.compose.runtime.livedata)
     implementation(libs.androidx.material3.android)
     implementation(libs.hilt.coroutines)
-    implementation(projects.core.actions)
+
+    api(projects.core.actions)
 
     api(libs.moshi.adapters)
     implementation(libs.moshi)

@@ -1,4 +1,4 @@
-package com.sean8.jeminai.core.util
+package com.sean8.jeminai.core.orchestrator
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -6,75 +6,102 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build.VERSION
+import android.os.Build.VERSION_CODES
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
+import com.sean8.core.hiltcoroutines.di.ApplicationScope
+import com.sean8.jeminai.core.accessibility.record.AccessibilityEventsRecorder
+import com.sean8.jeminai.core.accessibility.util.AccessibilityNodeInfoXmlDumper
+import com.sean8.jeminai.core.accessibility.util.AccessibilityServiceHelper
+import com.sean8.jeminai.core.accessibility.util.TreeNode
+import com.sean8.jeminai.core.accessibility.util.populateChildren
+import com.sean8.jeminai.core.actions.Action
 import com.sean8.jeminai.core.llm.LLMResponse
 import com.sean8.jeminai.core.llm.LLMService
 import com.sean8.jeminai.core.llm.PromptConstants
+import com.sean8.jeminai.core.util.encodeBitmapToBase64
+import com.sean8.jeminai.core.voice.VoiceTransmitter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Provider
 
 @AndroidEntryPoint
-class ServerMockService : Service() {
+class OrchestratorService : Service() {
+    private val TAG = "OrchestratorService"
 
     @Inject
     lateinit var llmService: LLMService
 
     @Inject
-    lateinit var accessibilityHelperLazy: Provider<AccessibilityHelper>
+    lateinit var accessibilityHelperLazy: Provider<AccessibilityServiceHelper>
 
-    lateinit var accessibilityHelper: AccessibilityHelper
+    @Inject
+    lateinit var eventsRecorder: AccessibilityEventsRecorder
 
-    private val serviceScope = CoroutineScope(Dispatchers.IO)
-    private val TAG = "ServerMockService"
+    @Inject
+    lateinit var voiceTransmitter: VoiceTransmitter
+
+    private lateinit var accessibilityHelper: AccessibilityServiceHelper
+
+    @Inject
+    @ApplicationScope
+    lateinit var appScope: CoroutineScope
 
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "ServerMockService created")
-        startForeground(NOTIFICATION_ID, createNotification())
+        Log.d(TAG, "OrchestratorService created")
+        Log.d(TAG, "VoiceTransmitter instance: $voiceTransmitter")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         accessibilityHelper = accessibilityHelperLazy.get()
 
-        serviceScope.launch {
-            handleIntent(intent)
+        val foregroundFlags =
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION xor if (VERSION.SDK_INT >= VERSION_CODES.R) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            } else {
+                0
+            }
+
+        if (VERSION.SDK_INT >= VERSION_CODES.R) {
+            ServiceCompat.startForeground(
+                this,
+                NOTIFICATION_ID,
+                createNotification(),
+                foregroundFlags,
+            )
+        }
+
+        appScope.launch {
+            voiceTransmitter.latestVoice.collect { voiceFile ->
+                voiceFile?.let {
+                    voiceTriggered(voiceFile)
+                }
+            }
+
         }
         return START_STICKY
     }
 
-    private suspend fun handleIntent(intent: Intent?) {
-        when (intent?.action) {
-            ACTION_PROCESS_AUDIO_INPUT -> {
-                val audioFilePath = intent.getStringExtra(EXTRA_AUDIO_FILE_PATH)
-                Log.d(TAG, "Received audio file path: $audioFilePath")
-                if (audioFilePath != null) {
-                    val transcribedText = transcribeAudioFile(audioFilePath)
-                    if (transcribedText != null) {
-                        Log.d(TAG, "Transcribed Text: $transcribedText")
-                        captureAndSendData(userMessage = transcribedText, isRequestEcho = false)
-                    } else {
-                        Log.e(TAG, "Failed to transcribe audio")
-                    }
-                } else {
-                    Log.e(TAG, "Audio file path is null")
-                }
-            }
-            else -> {
-                Log.d(TAG, "Unknown action received")
-            }
+    private suspend fun voiceTriggered(voiceFile: File) {
+        val transcribedText = transcribeAudioFile(voiceFile)
+        if (transcribedText != null) {
+            Log.d(TAG, "Transcribed Text: $transcribedText")
+            captureAndSendData(userMessage = transcribedText, isRequestEcho = false)
+        } else {
+            Log.e(TAG, "Failed to transcribe audio")
         }
     }
 
-    private suspend fun transcribeAudioFile(audioFilePath: String): String? {
-        Log.d(TAG, "Transcribing audio file: $audioFilePath")
-        val audioFile = File(audioFilePath)
+    private suspend fun transcribeAudioFile(audioFile: File): String? {
+        Log.d(TAG, "Transcribing audio file: ${audioFile.path}")
         if (!audioFile.exists()) {
             Log.e(TAG, "Audio file does not exist")
             return null
@@ -104,6 +131,9 @@ class ServerMockService : Service() {
                 accessibilityHelper.getDefaultDisplay()!!,
             )
 
+        // Prepare recent events
+        val events = eventsRecorder.getAndResetEventHistory()
+
         // Capture Screenshot
         val bitmap = accessibilityHelper.captureScreenshot()
         var screenshotBase64: String? = null
@@ -121,7 +151,10 @@ class ServerMockService : Service() {
 
         // Combine the general prompt with the user message and XRAY data
         val prompt =
-            "${PromptConstants.GENERAL_PROMPT}\n\nUser Input: \"$message\"\n\nXRAY Data:\n$xrayData"
+            "${PromptConstants.GENERAL_PROMPT}\n\n" +
+                "User Input: \"$message\"\n\n" +
+                "Latest events: \n$events" + "\n\n" +
+                "View Hierarchy Data: \n$xrayData"
 
         // Send message to LLM with image
         try {
@@ -133,7 +166,6 @@ class ServerMockService : Service() {
             } else {
                 Log.w(TAG, "Exit due to null llmResponse")
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "Error sending message to LLM Service", e)
         }
@@ -149,7 +181,7 @@ class ServerMockService : Service() {
             }
         }
 
-        llmResponse.actions?.forEach { action ->
+        llmResponse.actions?.forEach { action: Action ->
             Log.d(TAG, "Performing action: $action")
             accessibilityHelper.performAction(action)
         }
@@ -184,7 +216,5 @@ class ServerMockService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 1
-        const val ACTION_PROCESS_AUDIO_INPUT = "com.sean8.jeminai.ACTION_PROCESS_AUDIO_INPUT"
-        const val EXTRA_AUDIO_FILE_PATH = "extra_audio_file_path"
     }
 }

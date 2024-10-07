@@ -10,6 +10,5 @@ android {
 
 dependencies {
     implementation(libs.hilt.coroutines)
-    implementation(projects.core.util)
-    implementation(projects.core.llm)
+    implementation(libs.hilt.android.testing)
 }

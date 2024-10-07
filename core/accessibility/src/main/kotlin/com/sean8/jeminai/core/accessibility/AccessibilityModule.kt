@@ -1,6 +1,6 @@
 package com.sean8.jeminai.core.accessibility
 
-import com.sean8.jeminai.core.util.AccessibilityHelper
+import com.sean8.jeminai.core.accessibility.util.AccessibilityServiceHelper
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -14,6 +14,6 @@ abstract class AccessibilityModule {
     @Binds
     @ServiceScoped
     abstract fun bindAccessibilityHelper(
-        impl: AccessibilityHelperImpl,
-    ): AccessibilityHelper
+        impl: AccessibilityServiceHelperImpl,
+    ): AccessibilityServiceHelper
 }

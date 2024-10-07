@@ -3,6 +3,7 @@ package com.sean8.jeminai.core.accessibility.record
 import android.graphics.Rect
 import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
+import com.sean8.jeminai.core.accessibility.util.TreeNode
 import com.sean8.jeminai.core.util.getShortBoundsInScreen
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonAdapter
@@ -11,7 +12,7 @@ import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.json.JSONArray
 import org.json.JSONObject
 
-fun com.sean8.jeminai.core.util.TreeNode<AccessibilityNodeInfo>.toJson(): String {
+fun TreeNode<AccessibilityNodeInfo>.toJson(): String {
     try {
         val root = JSONObject(value.toJson())
 

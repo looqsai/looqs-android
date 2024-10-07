@@ -1,4 +1,4 @@
-package com.sean8.jeminai.core.accessibility.ui
+package com.sean8.jeminai.feature.setup
 
 import android.Manifest
 import android.app.Activity.RESULT_OK
@@ -20,8 +20,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun SetupScreen(
@@ -37,24 +38,20 @@ fun SetupScreen(
 ) {
     val context = LocalContext.current
 
-    // Observing LiveData from ViewModel
-    val networkStatus by viewModel.networkStatus.observeAsState(initial = false)
-    val accessibilityStatus by viewModel.accessibilityStatus.observeAsState(initial = false)
-    val projectionToken by viewModel.projectionToken.observeAsState()
-    val latestMessage by viewModel.latestMessage.observeAsState(initial = "")
+    // Collecting StateFlow from ViewModel
+    val networkStatus by viewModel.networkStatus.collectAsState()
+    val accessibilityStatus by viewModel.accessibilityStatus.collectAsState()
+    val projectionToken by viewModel.projectionToken.collectAsState()
+    val latestMessage by viewModel.latestMessage.collectAsState()
     val version = viewModel.appVersion
-    val isListening by viewModel.isListening.observeAsState(initial = false)
-    val isAudioPermissionGranted by viewModel.isAudioPermissionGranted.observeAsState(initial = false)
-
-    // Check audio permission on launch
-    LaunchedEffect(Unit) {
-        viewModel.checkAudioPermission()
-    }
+    val isListening by viewModel.isListening.collectAsState()
+    val isAudioPermissionGranted by viewModel.isAudioPermissionGranted.collectAsState()
 
     // Handle navigation to accessibility settings
-    val navigateToAccessibility by viewModel.navigateToAccessibility.observeAsState()
-    navigateToAccessibility?.getContentIfNotHandled()?.let {
-        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+    LaunchedEffect(Unit) {
+        viewModel.navigateToAccessibility.collectLatest {
+            context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
     }
 
     // Handle projection permission request
@@ -67,12 +64,13 @@ fun SetupScreen(
         },
     )
 
-    val requestProjectionPermission by viewModel.requestProjectionPermission.observeAsState()
-    requestProjectionPermission?.getContentIfNotHandled()?.let {
-        val projectionManager =
-            context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        val intent = projectionManager.createScreenCaptureIntent()
-        projectionLauncher.launch(intent)
+    LaunchedEffect(Unit) {
+        viewModel.requestProjectionPermission.collectLatest {
+            val projectionManager =
+                context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            val intent = projectionManager.createScreenCaptureIntent()
+            projectionLauncher.launch(intent)
+        }
     }
 
     // Handle audio permission request
@@ -83,9 +81,10 @@ fun SetupScreen(
         },
     )
 
-    val requestAudioPermission by viewModel.requestAudioPermission.observeAsState()
-    requestAudioPermission?.getContentIfNotHandled()?.let {
-        audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    LaunchedEffect(Unit) {
+        viewModel.requestAudioPermission.collectLatest {
+            audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
     }
 
     // Main UI
