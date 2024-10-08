@@ -27,6 +27,7 @@ include(":core:voice")
 include(":core:llm")
 include(":core:util")
 include(":core:actions")
+include(":core:screenshot")
 include(":core:orchestrator")
 
 include(":feature:settings")

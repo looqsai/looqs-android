@@ -14,4 +14,5 @@ dependencies {
     implementation(projects.core.accessibility)
     implementation(projects.core.voice)
     implementation(projects.core.llm)
+    implementation(projects.core.screenshot)
 }

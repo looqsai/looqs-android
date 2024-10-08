@@ -2,6 +2,7 @@ package com.sean8.jeminai.core.llm
 
 import android.util.Log
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -35,29 +36,58 @@ class ChatGPTService @Inject constructor() : LLMService {
     // Replace with your actual API key or securely fetch it from your configuration
     private val apiKey = BuildConfig.OPENAI_API_KEY
 
-    // Simplified Moshi configuration
     private val moshiRequest: Moshi = Moshi.Builder()
+        .add(
+            PolymorphicJsonAdapterFactory.of(ContentBlock::class.java, "type")
+                .withSubtype(ContentBlock.TextBlock::class.java, "text")
+                .withSubtype(ContentBlock.ImageBlock::class.java, "image_url")
+        )
         .add(KotlinJsonAdapterFactory())
         .build()
 
+
     private val chatGPTRequestAdapter = moshiRequest.adapter(ChatGPTRequest::class.java)
+
     private val chatGPTResponseAdapter =
         com.sean8.jeminai.core.actions.MoshiConfig.moshi.adapter(ChatGPTResponse::class.java)
     private val llmResponseAdapter =
         com.sean8.jeminai.core.actions.MoshiConfig.moshi.adapter(LLMResponse::class.java)
 
     override suspend fun sendMessage(message: String, imageBase64: String?): LLMResponse? {
+        // Build the content blocks
+        val contentBlocks = mutableListOf<ContentBlock>()
+
+        // Add the text message
+        contentBlocks.add(
+            ContentBlock.TextBlock(
+                text = message
+            )
+        )
+
+        // Add the image if provided
+        if (imageBase64 != null) {
+            contentBlocks.add(
+                ContentBlock.ImageBlock(
+                    image_url = ImageUrl(
+                        url = "data:image/jpeg;base64,$imageBase64"
+                        // Optionally, specify detail level
+                        // detail = "high"
+                    )
+                )
+            )
+        }
+
         // Create the user message
         val userMessage = RequestChatMessage(
             role = "user",
-            content = message,
+            content = contentBlocks
         )
 
         // Build the request
         val requestData = ChatGPTRequest(
             model = "gpt-4o-mini",
             messages = listOf(userMessage),
-            max_tokens = 1000,
+            max_tokens = 1000
         )
 
         // Serialize the request
@@ -71,6 +101,7 @@ class ChatGPTService @Inject constructor() : LLMService {
             .header("Authorization", "Bearer $apiKey")
             .post(requestBody)
             .build()
+
 
         return withContext(Dispatchers.IO) {
             try {

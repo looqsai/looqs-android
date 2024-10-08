@@ -13,20 +13,21 @@ data class ChatGPTRequest(
 @JsonClass(generateAdapter = true)
 data class RequestChatMessage(
     val role: String,
-    val content: String,
+    val content: List<ContentBlock>,
 )
 
-@JsonClass(generateAdapter = true)
-open class ContentBlock {
+@JsonClass(generateAdapter = true, generator = "sealed:type")
+sealed class ContentBlock {
+
     @JsonClass(generateAdapter = true)
+    @Json(name = "text")
     data class TextBlock(
-        val type: String = "text",
         val text: String,
     ) : ContentBlock()
 
     @JsonClass(generateAdapter = true)
+    @Json(name = "image_url")
     data class ImageBlock(
-        val type: String = "image_url",
         val image_url: ImageUrl,
     ) : ContentBlock()
 }
@@ -36,7 +37,6 @@ data class ImageUrl(
     val url: String,
     val detail: String? = null, // "low", "high", or "auto"
 )
-
 
 @JsonClass(generateAdapter = true)
 data class ChatGPTResponse(

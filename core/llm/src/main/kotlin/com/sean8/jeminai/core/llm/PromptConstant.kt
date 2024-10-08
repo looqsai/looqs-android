@@ -77,7 +77,7 @@ object PromptConstants {
           - Only include actions that are necessary to fulfill the user's request.
           - Ensure that each action object includes all required fields.
           - Use accurate `pathToElement` to locate UI elements.
-          - Provide `coordinates` (`x` and `y`) when needed for precision.
+          - Provide `coordinates` (`x` and `y`) when needed for precision. Note y axis starts at the top of the screen.
           - Interpret phrases like "show me more of the page" as scrolling actions, even if the user doesn't explicitly say "scroll."
 
         - **Request-Echo Mechanism**:

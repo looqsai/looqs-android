@@ -1,4 +1,4 @@
-package com.sean8.jeminai.core.accessibility.screenshots
+package com.sean8.jeminai.core.screenshot
 
 import android.content.Context
 import android.content.Context.WINDOW_SERVICE

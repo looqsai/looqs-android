@@ -1,9 +1,7 @@
 package com.sean8.jeminai.core.accessibility
 
-import android.graphics.Bitmap
 import android.view.Display
 import android.view.accessibility.AccessibilityNodeInfo
-import com.sean8.jeminai.core.accessibility.screenshots.ProjectedScreenshotExtractor
 import com.sean8.jeminai.core.accessibility.util.AccessibilityServiceHelper
 import com.sean8.jeminai.core.actions.Action
 import com.sean8.jeminai.core.util.defaultDisplay
@@ -13,7 +11,6 @@ import javax.inject.Inject
 @ServiceScoped
 class AccessibilityServiceHelperImpl @Inject constructor(
     private val accessibilityService: AppAccessibilityService?,
-    private val screenshotExtractor: ProjectedScreenshotExtractor,
 ) : AccessibilityServiceHelper {
 
     override fun getRootNode(): AccessibilityNodeInfo? {
@@ -22,13 +19,6 @@ class AccessibilityServiceHelperImpl @Inject constructor(
 
     override fun getDefaultDisplay(): Display? {
         return accessibilityService?.defaultDisplay
-    }
-
-    override fun captureScreenshot(): Bitmap? {
-        screenshotExtractor.start()
-        val bitmap = screenshotExtractor.acquireScreenshot()
-        screenshotExtractor.stop()
-        return bitmap
     }
 
     override fun speak(text: String) {

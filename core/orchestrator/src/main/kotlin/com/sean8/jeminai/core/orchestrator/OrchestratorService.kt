@@ -6,7 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
+import android.graphics.Bitmap
 import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.IBinder
@@ -23,15 +23,17 @@ import com.sean8.jeminai.core.actions.Action
 import com.sean8.jeminai.core.llm.LLMResponse
 import com.sean8.jeminai.core.llm.LLMService
 import com.sean8.jeminai.core.llm.PromptConstants
+import com.sean8.jeminai.core.screenshot.ProjectedScreenshotExtractor
+import com.sean8.jeminai.core.screenshot.ProjectionState
 import com.sean8.jeminai.core.util.encodeBitmapToBase64
 import com.sean8.jeminai.core.voice.VoiceTransmitter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Provider
-
 @AndroidEntryPoint
 class OrchestratorService : Service() {
     private val TAG = "OrchestratorService"
@@ -48,46 +50,72 @@ class OrchestratorService : Service() {
     @Inject
     lateinit var voiceTransmitter: VoiceTransmitter
 
+    @Inject
+    lateinit var screenshotExtractor: ProjectedScreenshotExtractor
+
     private lateinit var accessibilityHelper: AccessibilityServiceHelper
 
     @Inject
     @ApplicationScope
-    lateinit var appScope: CoroutineScope
+    lateinit var scope: CoroutineScope
+
+    private var latestScreenshot: Bitmap? = null
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "OrchestratorService created")
-        Log.d(TAG, "VoiceTransmitter instance: $voiceTransmitter")
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         accessibilityHelper = accessibilityHelperLazy.get()
-
-        val foregroundFlags =
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION xor if (VERSION.SDK_INT >= VERSION_CODES.R) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-            } else {
-                0
-            }
 
         if (VERSION.SDK_INT >= VERSION_CODES.R) {
             ServiceCompat.startForeground(
                 this,
                 NOTIFICATION_ID,
                 createNotification(),
-                foregroundFlags,
+                0,
             )
         }
 
-        appScope.launch {
-            voiceTransmitter.latestVoice.collect { voiceFile ->
-                voiceFile?.let {
-                    voiceTriggered(voiceFile)
+        scope.launch {
+            // Collect MediaProjection
+            ProjectionState.mediaProjection.collect { mediaProjection ->
+                if (mediaProjection != null) {
+                    Log.d(TAG, "MediaProjection is available")
+
+                    // Start the screenshot extractor
+                    screenshotExtractor.start(
+                        mediaProjection,
+                        scope,
+                        callback = { bitmap ->
+                            latestScreenshot = bitmap
+                        }
+                    )
+
+                    // Start collecting voice inputs
+                    collectVoiceInputs()
+                } else {
+                    Log.e(TAG, "MediaProjection is null")
                 }
             }
-
         }
-        return START_STICKY
+    }
+
+    private fun collectVoiceInputs() {
+        scope.launch {
+            voiceTransmitter.latestVoice.collect { voiceFile ->
+                voiceFile?.let {
+                    scope.launch {
+                        voiceTriggered(voiceFile)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        scope.cancel()
+        screenshotExtractor.stop()
+        Log.d(TAG, "OrchestratorService destroyed")
     }
 
     private suspend fun voiceTriggered(voiceFile: File) {
@@ -134,11 +162,14 @@ class OrchestratorService : Service() {
         // Prepare recent events
         val events = eventsRecorder.getAndResetEventHistory()
 
-        // Capture Screenshot
-        val bitmap = accessibilityHelper.captureScreenshot()
+        // Use the latest screenshot captured
         var screenshotBase64: String? = null
+        val bitmap = latestScreenshot
         if (bitmap != null) {
             screenshotBase64 = encodeBitmapToBase64(bitmap)
+            Log.d(TAG, "Screenshot captured and encoded")
+        } else {
+            Log.w(TAG, "No screenshot available")
         }
 
         // Prepare the message
@@ -153,7 +184,7 @@ class OrchestratorService : Service() {
         val prompt =
             "${PromptConstants.GENERAL_PROMPT}\n\n" +
                 "User Input: \"$message\"\n\n" +
-                "Latest events: \n$events" + "\n\n" +
+                "Latest events: \n$events\n\n" +
                 "View Hierarchy Data: \n$xrayData"
 
         // Send message to LLM with image
@@ -186,10 +217,7 @@ class OrchestratorService : Service() {
             accessibilityHelper.performAction(action)
         }
 
-        // TODO: After performing actions, send Request-Echo. Need more logic so it won't be infinite loop
-//        serviceScope.launch {
-//            captureAndSendData(userMessage = "", isRequestEcho = true)
-//        }
+        // TODO: After performing actions, send Request-Echo if necessary
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

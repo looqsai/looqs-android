@@ -12,6 +12,7 @@ dependencies {
     implementation(projects.core.accessibility)
     implementation(projects.core.voice)
     implementation(projects.core.orchestrator)
+    implementation(projects.core.screenshot)
 
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.material3.android)

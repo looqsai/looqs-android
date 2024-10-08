@@ -1,13 +1,15 @@
 package com.sean8.jeminai.feature.setup
 
 import android.Manifest
-import android.app.Activity.RESULT_OK
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,7 +30,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.flow.collectLatest
 
@@ -41,11 +42,9 @@ fun SetupScreen(
     // Collecting StateFlow from ViewModel
     val networkStatus by viewModel.networkStatus.collectAsState()
     val accessibilityStatus by viewModel.accessibilityStatus.collectAsState()
-    val projectionToken by viewModel.projectionToken.collectAsState()
-    val latestMessage by viewModel.latestMessage.collectAsState()
-    val version = viewModel.appVersion
-    val isListening by viewModel.isListening.collectAsState()
     val isAudioPermissionGranted by viewModel.isAudioPermissionGranted.collectAsState()
+    val projectionStatus by viewModel.projectionStatus.collectAsState()
+    val version = viewModel.appVersion
 
     // Handle navigation to accessibility settings
     LaunchedEffect(Unit) {
@@ -54,22 +53,25 @@ fun SetupScreen(
         }
     }
 
-    // Handle projection permission request
-    val projectionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-        onResult = { result ->
-            if (result.resultCode == RESULT_OK && result.data != null) {
-                viewModel.onProjectionPermissionResult(result.data!!)
+    // Projection Permission Launcher
+    val projectionPermissionLauncher = rememberLauncherForActivityResult(
+        contract = StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            if (data != null) {
+                viewModel.onProjectionPermissionResult(result.resultCode, data)
             }
-        },
-    )
+        }
+    }
 
-    LaunchedEffect(Unit) {
-        viewModel.requestProjectionPermission.collectLatest {
-            val projectionManager =
+    val requestProjectionPermission by viewModel.requestProjectionPermission.collectAsState(initial = null)
+    LaunchedEffect(requestProjectionPermission) {
+        requestProjectionPermission?.let {
+            val mediaProjectionManager =
                 context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            val intent = projectionManager.createScreenCaptureIntent()
-            projectionLauncher.launch(intent)
+            val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
+            projectionPermissionLauncher.launch(captureIntent)
         }
     }
 
@@ -81,6 +83,8 @@ fun SetupScreen(
         },
     )
 
+
+
     LaunchedEffect(Unit) {
         viewModel.requestAudioPermission.collectLatest {
             audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -91,21 +95,12 @@ fun SetupScreen(
     SetupOptions(
         networkStatus = networkStatus,
         accessibilityStatus = accessibilityStatus,
-        projectionToken = projectionToken,
-        latestMessage = latestMessage,
+        projectionStatus = projectionStatus,
         version = version,
-        isListening = isListening,
         isAudioPermissionGranted = isAudioPermissionGranted,
         onAccessibilityClicked = { viewModel.navigateToAccessibility() },
-        onProjectionClicked = { viewModel.askProjection() },
+        onProjectionClicked = { viewModel.askProjectionPermission() },
         onRequestAudioPermissionClicked = { viewModel.requestAudioPermission() },
-        onListeningClicked = {
-            if (isListening) {
-                viewModel.stopListeningService()
-            } else {
-                viewModel.startListeningService()
-            }
-        },
     )
 }
 
@@ -113,15 +108,12 @@ fun SetupScreen(
 private fun SetupOptions(
     networkStatus: Boolean,
     accessibilityStatus: Boolean,
-    projectionToken: Intent?,
-    latestMessage: String,
+    projectionStatus: MediaProjection?,
     version: String,
-    isListening: Boolean,
     isAudioPermissionGranted: Boolean,
     onAccessibilityClicked: () -> Unit,
     onProjectionClicked: () -> Unit,
     onRequestAudioPermissionClicked: () -> Unit,
-    onListeningClicked: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -141,32 +133,22 @@ private fun SetupOptions(
             onClick = onAccessibilityClicked,
         )
 
+        // Projection Status
+        val projectionEnabled = projectionStatus != null
         StatusButton(
-            text = "Projection is ${if (projectionToken != null) "ON" else "OFF"}",
-            isActive = projectionToken != null,
-            onClick = onProjectionClicked,
+            text = "Projection is ${if (projectionEnabled) "Active" else "Inactive"}",
+            isActive = projectionEnabled,
+            onClick = {
+                if (!projectionEnabled) {
+                    onProjectionClicked()
+                }
+            }
         )
 
         StatusButton(
             text = "Audio Permission is ${if (isAudioPermissionGranted) "GRANTED" else "NOT GRANTED"}",
             isActive = isAudioPermissionGranted,
             onClick = onRequestAudioPermissionClicked,
-        )
-
-        StatusButton(
-            text = "Listening is ${if (isListening) "ON" else "OFF"}",
-            isActive = isListening,
-            onClick = onListeningClicked,
-        )
-
-        // Latest Message Text
-        Text(
-            text = latestMessage,
-            fontSize = 18.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
         )
 
         Spacer(modifier = Modifier.weight(1f))
@@ -212,15 +194,12 @@ fun PreviewSetupOptions() {
     SetupOptions(
         networkStatus = true,
         accessibilityStatus = true,
-        projectionToken = null,
-        latestMessage = "All systems are functional",
         version = "Version 1.0.0",
-        isListening = false,
         isAudioPermissionGranted = true,
+        projectionStatus = null,
         onAccessibilityClicked = { /* No action */ },
         onProjectionClicked = { /* No action */ },
         onRequestAudioPermissionClicked = { /* No action */ },
-        onListeningClicked = { /* No action */ },
     )
 }
 

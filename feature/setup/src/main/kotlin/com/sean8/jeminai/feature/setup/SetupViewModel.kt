@@ -10,10 +10,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sean8.jeminai.core.accessibility.AccessibilityStatusManager
 import com.sean8.jeminai.core.accessibility.connectivity.NetworkMonitor
-import com.sean8.jeminai.core.accessibility.screenshots.ProjectionState
 import com.sean8.jeminai.core.data.repository.UserDataRepository
 import com.sean8.jeminai.core.orchestrator.OrchestratorService
-import com.sean8.jeminai.core.voice.AudioRecordingService
+import com.sean8.jeminai.core.screenshot.ProjectionState
+import com.sean8.jeminai.core.screenshot.ScreenshotService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -49,28 +49,27 @@ class SetupViewModel @Inject constructor(
             initialValue = false,
         )
 
-    // Projection Token
-    val projectionToken: StateFlow<Intent?> = ProjectionState.projectionToken
-
-    // Latest Message
-    private val _latestMessage = MutableStateFlow("Server is WIP")
-    val latestMessage: StateFlow<String> = _latestMessage.asStateFlow()
-
-    val appVersion: String =
-        try {
-            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            "v${packageInfo.versionName}" // or use versionCode if needed: packageInfo.versionCode
-        } catch (e: PackageManager.NameNotFoundException) {
-            "Version not found"
-        }
-
-    // Listening Status
-    private val _isListening = MutableStateFlow(false)
-    val isListening: StateFlow<Boolean> = _isListening.asStateFlow()
+    // Projection Status
+    val projectionStatus = ProjectionState.mediaProjection.stateIn(
+        scope = viewModelScope,
+        started = WhileSubscribed(5000),
+        initialValue = null,
+    )
 
     // Audio Permission Status
     private val _isAudioPermissionGranted = MutableStateFlow(false)
     val isAudioPermissionGranted: StateFlow<Boolean> = _isAudioPermissionGranted.asStateFlow()
+
+    private val _requestAudioPermission = MutableSharedFlow<Unit>()
+    val requestAudioPermission: SharedFlow<Unit> = _requestAudioPermission.asSharedFlow()
+
+    // Application Version
+    val appVersion: String = try {
+        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        "v${packageInfo.versionName}"
+    } catch (e: PackageManager.NameNotFoundException) {
+        "Version not found"
+    }
 
     // Navigation and Permission Events (One-time Events)
     private val _navigateToAccessibility = MutableSharedFlow<Unit>()
@@ -79,13 +78,11 @@ class SetupViewModel @Inject constructor(
     private val _requestProjectionPermission = MutableSharedFlow<Unit>()
     val requestProjectionPermission: SharedFlow<Unit> = _requestProjectionPermission.asSharedFlow()
 
-    private val _requestAudioPermission = MutableSharedFlow<Unit>()
-    val requestAudioPermission: SharedFlow<Unit> = _requestAudioPermission.asSharedFlow()
-
     init {
         // Initial checks
         checkAudioPermission()
 
+        // Observe Accessibility Status
         viewModelScope.launch {
             accessibilityStatus.collect { statusEnabled ->
                 if (statusEnabled) {
@@ -93,6 +90,8 @@ class SetupViewModel @Inject constructor(
                         context,
                         Intent(context, OrchestratorService::class.java),
                     )
+                } else {
+                    // Optionally stop the service if accessibility is disabled
                 }
             }
         }
@@ -105,32 +104,21 @@ class SetupViewModel @Inject constructor(
         }
     }
 
-    fun askProjection() {
+    fun askProjectionPermission() {
         viewModelScope.launch {
             _requestProjectionPermission.emit(Unit)
         }
     }
 
-    fun onProjectionPermissionResult(data: Intent) {
-        ProjectionState.setProjectionToken(data)
-        viewModelScope.launch {
-            userDataRepository.setProjectionApproved(true)
+    fun onProjectionPermissionResult(resultCode: Int, data: Intent) {
+        val serviceIntent = Intent(context, ScreenshotService::class.java).apply {
+            putExtra("resultCode", resultCode)
+            putExtra("data", data)
         }
+        startForegroundService(context, serviceIntent)
     }
 
-    fun startListeningService() {
-        val intent = Intent(context, AudioRecordingService::class.java)
-        context.startForegroundService(intent)
-        _isListening.value = true
-    }
-
-    fun stopListeningService() {
-        val intent = Intent(context, AudioRecordingService::class.java)
-        context.stopService(intent)
-        _isListening.value = false
-    }
-
-    fun checkAudioPermission() {
+    private fun checkAudioPermission() {
         val isGranted = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.RECORD_AUDIO,
