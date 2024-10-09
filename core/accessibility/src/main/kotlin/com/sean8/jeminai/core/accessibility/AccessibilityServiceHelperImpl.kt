@@ -21,10 +21,6 @@ class AccessibilityServiceHelperImpl @Inject constructor(
         return accessibilityService?.defaultDisplay
     }
 
-    override fun speak(text: String) {
-        accessibilityService?.speak(text)
-    }
-
     override fun performAction(action: Action) {
         accessibilityService?.let { service ->
             when (action) {

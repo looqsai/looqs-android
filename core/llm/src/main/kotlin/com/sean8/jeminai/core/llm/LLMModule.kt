@@ -1,10 +1,10 @@
-package com.sean8.jeminai.core.accessibility.llm
+package com.sean8.jeminai.core.llm
 
-import com.sean8.jeminai.core.llm.ChatGPTService
-import com.sean8.jeminai.core.llm.LLMService
+import android.content.Context
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -14,5 +14,11 @@ object LLMModule {
 
     @Provides
     @Singleton
-    fun getLLM(): LLMService = ChatGPTService()
+    fun provideLLMService(): LLMService = ChatGPTService()
+
+    @Provides
+    @Singleton
+    fun provideTextToSpeechService(
+        @ApplicationContext context: Context,
+    ): TextToSpeechService = ChatGPTTextToSpeechService(context)
 }

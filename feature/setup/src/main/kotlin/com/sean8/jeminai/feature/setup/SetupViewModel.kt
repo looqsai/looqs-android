@@ -11,7 +11,6 @@ import androidx.lifecycle.viewModelScope
 import com.sean8.jeminai.core.accessibility.AccessibilityStatusManager
 import com.sean8.jeminai.core.accessibility.connectivity.NetworkMonitor
 import com.sean8.jeminai.core.data.repository.UserDataRepository
-import com.sean8.jeminai.core.orchestrator.OrchestratorService
 import com.sean8.jeminai.core.screenshot.ProjectionState
 import com.sean8.jeminai.core.screenshot.ScreenshotService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +31,7 @@ class SetupViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val networkMonitor: NetworkMonitor,
     private val userDataRepository: UserDataRepository,
+    private val accessibilityStatusManager: AccessibilityStatusManager,
 ) : ViewModel() {
 
     // Network Status
@@ -43,7 +43,7 @@ class SetupViewModel @Inject constructor(
 
     // Accessibility Status
     val accessibilityStatus: StateFlow<Boolean> =
-        AccessibilityStatusManager.isServiceEnabled.stateIn(
+        accessibilityStatusManager.isServiceEnabled.stateIn(
             scope = viewModelScope,
             started = WhileSubscribed(5000),
             initialValue = false,
@@ -81,20 +81,6 @@ class SetupViewModel @Inject constructor(
     init {
         // Initial checks
         checkAudioPermission()
-
-        // Observe Accessibility Status
-        viewModelScope.launch {
-            accessibilityStatus.collect { statusEnabled ->
-                if (statusEnabled) {
-                    startForegroundService(
-                        context,
-                        Intent(context, OrchestratorService::class.java),
-                    )
-                } else {
-                    // Optionally stop the service if accessibility is disabled
-                }
-            }
-        }
     }
 
     // Methods

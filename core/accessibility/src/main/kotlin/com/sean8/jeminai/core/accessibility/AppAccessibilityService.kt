@@ -15,7 +15,6 @@ import android.view.accessibility.AccessibilityManager
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import androidx.core.view.accessibility.AccessibilityEventCompat.TYPE_WINDOWS_CHANGED
-import com.sean8.jeminai.core.accessibility.tts.TextToSpeechHelper
 import com.sean8.jeminai.core.accessibility.util.AccessibilityNodeInfoXmlDumper
 import com.sean8.jeminai.core.accessibility.util.TreeNode
 import com.sean8.jeminai.core.accessibility.util.defaultDisplay
@@ -37,7 +36,7 @@ class AppAccessibilityService : AccessibilityService() {
     lateinit var eventBus: AccessibilityEventBus
 
     @Inject
-    lateinit var textToSpeechHelper: TextToSpeechHelper
+    lateinit var accessibilityStatusManager: AccessibilityStatusManager
 
     private val serviceScope = CoroutineScope(Dispatchers.Main)
 
@@ -50,13 +49,13 @@ class AppAccessibilityService : AccessibilityService() {
         instance = null
         super.onDestroy()
 
-        AccessibilityStatusManager.setServiceEnabled(false)
+        accessibilityStatusManager.setServiceEnabled(false)
     }
 
     override fun onServiceConnected() {
         Log.d(TAG, "onServiceConnected, info: $serviceInfo")
 
-        AccessibilityStatusManager.setServiceEnabled(true)
+        accessibilityStatusManager.setServiceEnabled(true)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -241,10 +240,6 @@ class AppAccessibilityService : AccessibilityService() {
             currentNode = currentNode?.getChild(index)
         }
         return currentNode
-    }
-
-    fun speak(text: String) {
-        textToSpeechHelper.speak(text)
     }
 
     companion object {

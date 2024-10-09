@@ -29,10 +29,42 @@ def enable_accessibility_service():
     run_adb_command(f"shell settings put secure enabled_accessibility_services {accessibility_service}")
     run_adb_command("shell settings put secure accessibility_enabled 1")
 
-# Run all setup steps
-def setup_services():
-    grant_permissions()
-    enable_accessibility_service()
+# Start recording service using adb
+def start_recording_service():
+    print("Starting recording service...")
+    run_adb_command("shell am startservice -a com.sean8.jeminai.ACTION_START_RECORDING")
+
+# CLI menu interface
+def cli_menu():
+    while True:
+        print("\nAndroid Service Manager - Choose an action:")
+        print("1. Grant RECORD_AUDIO permission")
+        print("2. Enable Accessibility Service")
+        print("3. Run Full Setup (grant permissions and enable services)")
+        print("4. Start Recording Service")
+        print("5. Exit")
+
+        try:
+            choice = int(input("Enter your choice (1-5): "))
+        except ValueError:
+            print("Invalid input. Please enter a number between 1 and 5.")
+            continue
+
+        if choice == 1:
+            grant_permissions()
+        elif choice == 2:
+            enable_accessibility_service()
+        elif choice == 3:
+            print("Running full setup...")
+            grant_permissions()
+            enable_accessibility_service()
+        elif choice == 4:
+            start_recording_service()
+        elif choice == 5:
+            print("Exiting...")
+            break
+        else:
+            print("Invalid choice. Please select a valid option.")
 
 if __name__ == "__main__":
-    setup_services()
+    cli_menu()

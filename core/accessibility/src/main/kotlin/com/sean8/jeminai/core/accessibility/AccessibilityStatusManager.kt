@@ -3,10 +3,11 @@ package com.sean8.jeminai.core.accessibility
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-object AccessibilityStatusManager {
+class AccessibilityStatusManager @Inject constructor() {
     private val _isServiceEnabled = MutableStateFlow(false)
     val isServiceEnabled: StateFlow<Boolean> = _isServiceEnabled.asStateFlow()
 

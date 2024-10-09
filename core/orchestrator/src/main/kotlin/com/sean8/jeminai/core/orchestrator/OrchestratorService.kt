@@ -23,6 +23,7 @@ import com.sean8.jeminai.core.actions.Action
 import com.sean8.jeminai.core.llm.LLMResponse
 import com.sean8.jeminai.core.llm.LLMService
 import com.sean8.jeminai.core.llm.PromptConstants
+import com.sean8.jeminai.core.llm.TextToSpeechService
 import com.sean8.jeminai.core.screenshot.ProjectedScreenshotExtractor
 import com.sean8.jeminai.core.screenshot.ProjectionState
 import com.sean8.jeminai.core.util.encodeBitmapToBase64
@@ -34,6 +35,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Provider
+
 @AndroidEntryPoint
 class OrchestratorService : Service() {
     private val TAG = "OrchestratorService"
@@ -52,6 +54,9 @@ class OrchestratorService : Service() {
 
     @Inject
     lateinit var screenshotExtractor: ProjectedScreenshotExtractor
+
+    @Inject
+    lateinit var textToSpeechService: TextToSpeechService
 
     private lateinit var accessibilityHelper: AccessibilityServiceHelper
 
@@ -206,9 +211,11 @@ class OrchestratorService : Service() {
         Log.d(TAG, "Processing LLM Response")
         llmResponse.spoken?.let { spoken ->
             if (spoken.lowercase() != "none") {
-                // Handle spoken response
+                // Handle spoken response using TextToSpeechService
                 Log.d(TAG, "Spoken: $spoken")
-                accessibilityHelper.speak(spoken)
+                scope.launch {
+                    textToSpeechService.speak(spoken)
+                }
             }
         }
 
