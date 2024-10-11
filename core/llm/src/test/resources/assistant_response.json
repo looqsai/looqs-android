@@ -1,0 +1,9 @@
+{
+  "id": "asst_test123",
+  "object": "assistant",
+  "created_at": 1698107661,
+  "name": "VI Assistant",
+  "model": "gpt-4",
+  "instructions": "Test instructions",
+  "metadata": {}
+}

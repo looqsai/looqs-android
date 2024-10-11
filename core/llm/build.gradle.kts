@@ -11,6 +11,12 @@ android {
 
     buildFeatures.buildConfig = true
     defaultConfig.buildConfigField("String", "OPENAI_API_KEY", "\"${getOpenAiApiKey()}\"")
+
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 fun getOpenAiApiKey(): String {
@@ -43,4 +49,5 @@ dependencies {
     ksp(libs.moshi.codegen)
 
     testImplementation(libs.okio)
+    testImplementation(libs.mockwebserver)
 }

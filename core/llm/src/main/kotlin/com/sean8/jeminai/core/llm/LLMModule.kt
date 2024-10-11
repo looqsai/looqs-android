@@ -6,6 +6,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
 import javax.inject.Singleton
 
 @Module
@@ -16,7 +17,7 @@ object LLMModule {
     @Singleton
     fun provideLLMService(
         moshiProvider: MoshiProvider,
-    ): LLMService = ChatGPTService(moshiProvider)
+    ): LLMService = ChatGPTService(moshiProvider, OkHttpClient(), "https://api.openai.com/v1")
 
     @Provides
     @Singleton

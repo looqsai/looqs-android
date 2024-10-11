@@ -6,16 +6,20 @@ import com.sean8.jeminai.core.llm.models.Assistant
 import com.sean8.jeminai.core.llm.models.AssistantRequest
 import com.sean8.jeminai.core.llm.models.ImageUrlContent
 import com.sean8.jeminai.core.llm.models.LLMResponse
+import com.sean8.jeminai.core.llm.models.Message
 import com.sean8.jeminai.core.llm.models.MessagesResponse
 import com.sean8.jeminai.core.llm.models.RequestChatMessage
 import com.sean8.jeminai.core.llm.models.RequestContentBlock
 import com.sean8.jeminai.core.llm.models.ResponseContentBlock
 import com.sean8.jeminai.core.llm.models.RunRequest
+import com.sean8.jeminai.core.llm.models.RunResponse
+import com.sean8.jeminai.core.llm.models.RunStatus
 import com.sean8.jeminai.core.llm.models.Thread
 import com.sean8.jeminai.core.llm.models.TranscriptionResponse
 import com.squareup.moshi.JsonReader
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -33,10 +37,10 @@ import javax.inject.Singleton
 @Singleton
 class ChatGPTService @Inject constructor(
     moshiProvider: MoshiProvider,
+    private val client: OkHttpClient,
+    private val baseUrl: String,
 ) : LLMService {
-
     private val TAG = "ChatGPTService"
-    private val client = OkHttpClient()
     private val apiKey = BuildConfig.OPENAI_API_KEY
     private val betaHeader = "OpenAI-Beta"
     private val betaHeaderValue = "assistants=v2"
@@ -53,15 +57,16 @@ class ChatGPTService @Inject constructor(
     private val runRequestAdapter = moshi.adapter(RunRequest::class.java)
     private val transcriptionResponseAdapter = moshi.adapter(TranscriptionResponse::class.java)
     private val assistantRequestAdapter = moshi.adapter(AssistantRequest::class.java)
+    private val runResponseAdapter = moshi.adapter(RunResponse::class.java)
 
     override suspend fun initializeAssistant(): Assistant {
         return withContext(Dispatchers.IO) {
-            val url = "https://api.openai.com/v1/assistants"
+            val url = "$baseUrl/assistants"
 
             val assistantRequest = AssistantRequest(
                 instructions = PromptConstants.GENERAL_PROMPT,
                 name = "VI Assistant",
-                model = "gpt-4",
+                model = "gpt-4o-mini",
             )
 
             val requestBodyString = assistantRequestAdapter.toJson(assistantRequest)
@@ -103,7 +108,7 @@ class ChatGPTService @Inject constructor(
 
     override suspend fun createThread(): Thread {
         return withContext(Dispatchers.IO) {
-            val url = "https://api.openai.com/v1/threads"
+            val url = "$baseUrl/threads"
 
             val requestBody = "{}".toRequestBody("application/json".toMediaType())
 
@@ -169,7 +174,7 @@ class ChatGPTService @Inject constructor(
 
         // Add the message to the thread
         withContext(Dispatchers.IO) {
-            val url = "https://api.openai.com/v1/threads/$threadId/messages"
+            val url = "$baseUrl/threads/$threadId/messages"
 
             val requestBodyString = requestChatMessageAdapter.toJson(userMessage)
             val requestBody = requestBodyString.toRequestBody("application/json".toMediaType())
@@ -208,7 +213,7 @@ class ChatGPTService @Inject constructor(
     private suspend fun runAssistantOnThread(threadId: String): LLMResponse? {
         Log.d(TAG, "Running assistant on thread ID: $threadId")
         return withContext(Dispatchers.IO) {
-            val url = "https://api.openai.com/v1/threads/$threadId/runs"
+            val url = "$baseUrl/threads/$threadId/runs"
 
             val runRequest = RunRequest(
                 assistantId = assistantId!!,
@@ -234,10 +239,28 @@ class ChatGPTService @Inject constructor(
                         Log.e(TAG, "Failed to run assistant: ${response.code} ${response.message}")
                         return@withContext null
                     } else {
-                        Log.d(TAG, "Assistant run successfully on thread")
-                        // Parse the assistant's reply from the thread messages
-                        val llmResponse = parseAssistantReply(threadId)
-                        return@withContext llmResponse
+                        Log.d(TAG, "Assistant run successfully initiated")
+                        // Parse the run response to get the run ID
+                        val runResponse = runResponseAdapter.fromJson(responseBody!!)
+                        val runId = runResponse?.id
+                        if (runId == null) {
+                            Log.e(TAG, "Run ID is null")
+                            return@withContext null
+                        }
+
+                        // Poll the run status until it is 'completed' or an error occurs
+                        val runStatus = pollRunStatus(threadId, runId)
+                        if (runStatus == RunStatus.COMPLETED) {
+                            // Parse the assistant's reply from the thread messages
+                            val llmResponse = parseAssistantReply(threadId)
+                            return@withContext llmResponse
+                        } else {
+                            Log.e(
+                                TAG,
+                                "Assistant run did not complete successfully. Status: $runStatus",
+                            )
+                            return@withContext null
+                        }
                     }
                 }
             } catch (e: IOException) {
@@ -247,9 +270,61 @@ class ChatGPTService @Inject constructor(
         }
     }
 
+    private suspend fun pollRunStatus(threadId: String, runId: String): RunStatus? {
+        val maxRetries = 30
+        val delayMillis = 2000L // 2 seconds
+        val url = "$baseUrl/threads/$threadId/runs/$runId"
+
+        repeat(maxRetries) { attempt ->
+            val request = Request.Builder()
+                .url(url)
+                .get()
+                .addHeader("Authorization", "Bearer $apiKey")
+                .addHeader(betaHeader, betaHeaderValue)
+                .build()
+
+            try {
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string()
+                    Log.v(TAG, "Run Status Response: $responseBody")
+                    if (!response.isSuccessful) {
+                        Log.e(TAG, "Failed to get run status: ${response.code} ${response.message}")
+                        return null
+                    } else {
+                        val runStatusResponse = runResponseAdapter.fromJson(responseBody!!)
+                        val status = runStatusResponse?.status
+                        Log.d(TAG, "Run status (attempt ${attempt + 1}): $status")
+                        when (status) {
+                            RunStatus.COMPLETED -> return status
+                            RunStatus.FAILED, RunStatus.CANCELLED, RunStatus.EXPIRED -> return status
+                            RunStatus.REQUIRES_ACTION -> {
+                                Log.e(
+                                    TAG,
+                                    "Run requires action which is not handled in this implementation.",
+                                )
+                                return status
+                            }
+
+                            else -> {
+                                // If status is QUEUED or IN_PROGRESS, wait and poll again
+                            }
+                        }
+                    }
+                }
+            } catch (e: IOException) {
+                Log.e(TAG, "Error fetching run status", e)
+                return null
+            }
+            delay(delayMillis)
+        }
+        Log.e(TAG, "Run did not complete within expected time")
+        return null
+    }
+
+
     private suspend fun parseAssistantReply(threadId: String): LLMResponse? {
         Log.d(TAG, "Parsing assistant's reply for thread ID: $threadId")
-        val url = "https://api.openai.com/v1/threads/$threadId/messages"
+        val url = "$baseUrl/threads/$threadId/messages"
 
         val request = Request.Builder()
             .url(url)
@@ -270,54 +345,21 @@ class ChatGPTService @Inject constructor(
                         val messagesResponse = messagesAdapter.fromJson(responseBody!!)
                         if (messagesResponse != null) {
                             val messages = messagesResponse.data
-                            // Get the last assistant message
-                            for (message in messages.asReversed()) {
-                                if (message.role == "assistant") {
-                                    for (contentBlock in message.content) {
-                                        if (contentBlock is ResponseContentBlock.TextBlock) {
-                                            var assistantText = contentBlock.text.value.trim()
 
-                                            Log.d(TAG, "Assistant Raw Text: $assistantText")
+                            // Sort messages by created_at in ascending order
+                            val sortedMessages = messages.sortedBy { it.createdAt }
 
-                                            // Extract JSON object from the assistant's reply
-                                            val jsonString = extractJsonFromText(assistantText)
-                                            if (jsonString != null) {
-                                                Log.d(TAG, "Extracted JSON: $jsonString")
-                                                // Parse the JSON string
-                                                val jsonReader =
-                                                    JsonReader.of(Buffer().writeUtf8(jsonString))
-                                                try {
-                                                    val llmResponse = parseLLMResponse(jsonReader)
-                                                    Log.d(TAG, "Parsed LLM Response successfully")
-                                                    return@withContext llmResponse
-                                                } catch (e: Exception) {
-                                                    Log.e(
-                                                        TAG,
-                                                        "Exception during parsing LLMResponse",
-                                                        e,
-                                                    )
-                                                    // As a fallback, return the spoken text as is
-                                                    return@withContext LLMResponse(
-                                                        spoken = assistantText,
-                                                        actions = emptyList(),
-                                                    )
-                                                }
-                                            } else {
-                                                Log.e(
-                                                    TAG,
-                                                    "No JSON object found in assistant's reply",
-                                                )
-                                                // As a fallback, return the spoken text as is
-                                                return@withContext LLMResponse(
-                                                    spoken = assistantText,
-                                                    actions = emptyList(),
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
+                            // Filter assistant messages
+                            val assistantMessages = sortedMessages.filter { it.role == "assistant" }
+
+                            if (assistantMessages.isNotEmpty()) {
+                                // Get the latest assistant message
+                                val latestAssistantMessage = assistantMessages.last()
+                                // Process the latest assistant message
+                                return@withContext processAssistantMessage(latestAssistantMessage)
+                            } else {
+                                Log.w(TAG, "No assistant message found in thread messages")
                             }
-                            Log.w(TAG, "No assistant message found in thread messages")
                         } else {
                             Log.e(TAG, "Failed to parse messagesResponse")
                         }
@@ -330,6 +372,38 @@ class ChatGPTService @Inject constructor(
             }
         }
     }
+
+    private fun processAssistantMessage(message: Message): LLMResponse? {
+        for (contentBlock in message.content) {
+            if (contentBlock is ResponseContentBlock.TextBlock) {
+                val assistantText = contentBlock.text.value.trim()
+                Log.d(TAG, "Assistant Raw Text: $assistantText")
+
+                // Extract JSON object from the assistant's reply
+                val jsonString = extractJsonFromText(assistantText)
+                if (jsonString != null) {
+                    Log.d(TAG, "Extracted JSON: $jsonString")
+                    // Parse the JSON string
+                    val jsonReader = JsonReader.of(Buffer().writeUtf8(jsonString))
+                    try {
+                        val llmResponse = parseLLMResponse(jsonReader)
+                        Log.d(TAG, "Parsed LLM Response successfully")
+                        return llmResponse
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Exception during parsing LLMResponse", e)
+                        // As a fallback, return the spoken text as is
+                        return LLMResponse(spoken = assistantText, actions = emptyList())
+                    }
+                } else {
+                    Log.e(TAG, "No JSON object found in assistant's reply")
+                    // As a fallback, return the spoken text as is
+                    return LLMResponse(spoken = assistantText, actions = emptyList())
+                }
+            }
+        }
+        return null
+    }
+
 
     private fun extractJsonFromText(text: String): String? {
         val jsonRegex = Regex("""\{.*\}""", RegexOption.DOT_MATCHES_ALL)
@@ -395,7 +469,7 @@ class ChatGPTService @Inject constructor(
         Log.d(TAG, "Transcribing audio file: ${audioFile.path}")
         return withContext(Dispatchers.IO) {
             try {
-                val url = "https://api.openai.com/v1/audio/transcriptions"
+                val url = "$baseUrl/audio/transcriptions"
 
                 val requestBody = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)

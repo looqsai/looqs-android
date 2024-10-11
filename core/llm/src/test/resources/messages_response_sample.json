@@ -2,27 +2,154 @@
   "object": "list",
   "data": [
     {
-      "id": "msg_ZUS78y5kvhEAwi0VFxmuje3Z",
+      "id": "msg_3lCHfnfiEkC0Xy73Rh68umwG",
       "object": "thread.message",
-      "created_at": 1728577575,
-      "assistant_id": "asst_wMrjZoz0CyMwQmrmLitt7GV3",
-      "thread_id": "thread_duxU78Rp0pfi4QRoirktwo4k",
-      "run_id": "run_lGLsmGCm9Ms9dxBKvL5fGrrP",
-      "role": "assistant",
+      "created_at": 1728650199,
+      "assistant_id": null,
+      "thread_id": "thread_OJPmJsWrhqW2VKuOcU8KOzjZ",
+      "run_id": null,
+      "role": "user",
       "content": [
         {
           "type": "text",
           "text": {
-            "value": "{\n  \"spoken\": \"You are currently in your photo gallery. The screen is showing your latest photos in grid format. Let's open the most recent one for a closer look.\",\n  \"actions\": [\n    {\n      \"type\": \"tap\",\n      \"pathToElement\": [\n        {\n          \"class\": \"android.widget.GridView\",\n          \"index\": 0\n        },\n        {\n          \"class\": \"android.widget.ImageView\",\n          \"index\": 0\n        }\n      ]\n    }\n  ]\n}",
+            "value": "Now open the email. That's the first attempt.",
             "annotations": []
           }
         }
       ],
       "attachments": [],
-      "metadata": {}
+      "metadata": {
+      }
+    },
+    {
+      "id": "msg_gnjojbLIlucS0Gsdz9XNz4Lv",
+      "object": "thread.message",
+      "created_at": 1728650156,
+      "assistant_id": "asst_tqOolJdoQCbinymQcMFqzkqt",
+      "thread_id": "thread_OJPmJsWrhqW2VKuOcU8KOzjZ",
+      "run_id": "run_WLfzyYImcdDm1eDgwUnAT6sE",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": {
+            "value": "{\n  \"spoken\": \"Absolutely, I will try to open 'From Now'.\",\n  \"actions\": [\n    {\n      \"type\": \"tap\",\n      \"x\": 180.0,\n      \"y\": 300.0\n    }\n  ]\n}",
+            "annotations": []
+          }
+        }
+      ],
+      "attachments": [],
+      "metadata": {
+      }
+    },
+    {
+      "id": "msg_UG6R0ycutavjrnC8eKUwF585",
+      "object": "thread.message",
+      "created_at": 1728650154,
+      "assistant_id": null,
+      "thread_id": "thread_OJPmJsWrhqW2VKuOcU8KOzjZ",
+      "run_id": null,
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": {
+            "value": "Third attempt, open from now.",
+            "annotations": []
+          }
+        }
+      ],
+      "attachments": [],
+      "metadata": {
+      }
+    },
+    {
+      "id": "msg_hyQxuy1lKUJYhICUJXctUV7t",
+      "object": "thread.message",
+      "created_at": 1728650110,
+      "assistant_id": "asst_tqOolJdoQCbinymQcMFqzkqt",
+      "thread_id": "thread_OJPmJsWrhqW2VKuOcU8KOzjZ",
+      "run_id": "run_R5lKyIie9zTM0lxzEywf9GFE",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": {
+            "value": "{\n  \"spoken\": \"Understood, I will attempt to open cron now.\",\n  \"actions\": [\n    {\n      \"type\": \"tap\",\n      \"x\": 3.0,\n      \"y\": 27.0\n    }\n  ]\n}",
+            "annotations": []
+          }
+        }
+      ],
+      "attachments": [],
+      "metadata": {
+      }
+    },
+    {
+      "id": "msg_tV4ISCwSE1MlrpvMQghP7WnR",
+      "object": "thread.message",
+      "created_at": 1728650108,
+      "assistant_id": null,
+      "thread_id": "thread_OJPmJsWrhqW2VKuOcU8KOzjZ",
+      "run_id": null,
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": {
+            "value": "Okay, this is second attempt, open cron.",
+            "annotations": []
+          }
+        }
+      ],
+      "attachments": [],
+      "metadata": {
+      }
+    },
+    {
+      "id": "msg_FfCLLunOKrzaAXgC9guSTxkJ",
+      "object": "thread.message",
+      "created_at": 1728650081,
+      "assistant_id": "asst_tqOolJdoQCbinymQcMFqzkqt",
+      "thread_id": "thread_OJPmJsWrhqW2VKuOcU8KOzjZ",
+      "run_id": "run_ElYzZAQMApz9r1fXzgfaNTOi",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": {
+            "value": "{\n  \"spoken\": \"Sure, let me open the photo for you.\",\n  \"actions\": [\n    {\n      \"type\": \"tap\",\n      \"x\": 298.0,\n      \"y\": 462.0\n    }\n  ]\n}",
+            "annotations": []
+          }
+        }
+      ],
+      "attachments": [],
+      "metadata": {
+      }
+    },
+    {
+      "id": "msg_3iFvhFq8yYLHJp1b3X0kmqP8",
+      "object": "thread.message",
+      "created_at": 1728650079,
+      "assistant_id": null,
+      "thread_id": "thread_OJPmJsWrhqW2VKuOcU8KOzjZ",
+      "run_id": null,
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": {
+            "value": "I'll show you the photo at first attempt.",
+            "annotations": []
+          }
+        }
+      ],
+      "attachments": [],
+      "metadata": {
+      }
     }
   ],
-  "first_id": "msg_ZUS78y5kvhEAwi0VFxmuje3Z",
-  "last_id": "msg_AdOOIXcf2hsahLwiDutj94Ao",
+  "first_id": "msg_3lCHfnfiEkC0Xy73Rh68umwG",
+  "last_id": "msg_3iFvhFq8yYLHJp1b3X0kmqP8",
   "has_more": false
 }

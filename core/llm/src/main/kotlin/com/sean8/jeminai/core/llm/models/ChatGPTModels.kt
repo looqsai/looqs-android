@@ -194,3 +194,57 @@ data class TranscriptionResponse(
     val text: String,
 )
 
+@JsonClass(generateAdapter = true)
+data class RunResponse(
+    val id: String,
+    val `object`: String,
+    @Json(name = "created_at")
+    val createdAt: Long,
+    @Json(name = "assistant_id")
+    val assistantId: String,
+    @Json(name = "thread_id")
+    val threadId: String,
+    val status: RunStatus,
+    @Json(name = "started_at")
+    val startedAt: Long?,
+    @Json(name = "expires_at")
+    val expiresAt: Long?,
+    @Json(name = "cancelled_at")
+    val cancelledAt: Long?,
+    @Json(name = "failed_at")
+    val failedAt: Long?,
+    @Json(name = "completed_at")
+    val completedAt: Long?,
+    @Json(name = "last_error")
+    val lastError: Any?,
+)
+
+enum class RunStatus {
+    @Json(name = "queued")
+    QUEUED,
+
+    @Json(name = "in_progress")
+    IN_PROGRESS,
+
+    @Json(name = "completed")
+    COMPLETED,
+
+    @Json(name = "failed")
+    FAILED,
+
+    @Json(name = "cancelled")
+    CANCELLED,
+
+    @Json(name = "expired")
+    EXPIRED,
+
+    @Json(name = "requires_action")
+    REQUIRES_ACTION,
+
+    @Json(name = "incomplete")
+    INCOMPLETE,
+
+    @Json(name = "unknown")
+    UNKNOWN
+}
+
