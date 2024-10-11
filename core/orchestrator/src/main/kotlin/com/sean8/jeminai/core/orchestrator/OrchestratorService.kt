@@ -20,10 +20,11 @@ import com.sean8.jeminai.core.accessibility.util.AccessibilityServiceHelper
 import com.sean8.jeminai.core.accessibility.util.TreeNode
 import com.sean8.jeminai.core.accessibility.util.populateChildren
 import com.sean8.jeminai.core.actions.Action
-import com.sean8.jeminai.core.llm.LLMResponse
 import com.sean8.jeminai.core.llm.LLMService
-import com.sean8.jeminai.core.llm.PromptConstants
 import com.sean8.jeminai.core.llm.TextToSpeechService
+import com.sean8.jeminai.core.llm.models.Assistant
+import com.sean8.jeminai.core.llm.models.LLMResponse
+import com.sean8.jeminai.core.llm.models.Thread
 import com.sean8.jeminai.core.screenshot.ProjectedScreenshotExtractor
 import com.sean8.jeminai.core.screenshot.ProjectionState
 import com.sean8.jeminai.core.util.encodeBitmapToBase64
@@ -60,16 +61,30 @@ class OrchestratorService : Service() {
 
     private lateinit var accessibilityHelper: AccessibilityServiceHelper
 
+    private var echoAttempts = 0
+    private val maxEchoAttempts = 5
+
     @Inject
     @ApplicationScope
     lateinit var scope: CoroutineScope
 
     private var latestScreenshot: Bitmap? = null
 
+    private var assistant: Assistant? = null
+    private var thread: Thread? = null
+
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "OrchestratorService created")
         accessibilityHelper = accessibilityHelperLazy.get()
+
+        // Initialize Assistant and Thread
+        scope.launch {
+            Log.d(TAG, "Initializing assistant and thread...")
+            assistant = llmService.initializeAssistant()
+            thread = llmService.createThread()
+            Log.d(TAG, "Assistant and thread initialized")
+        }
 
         if (VERSION.SDK_INT >= VERSION_CODES.R) {
             ServiceCompat.startForeground(
@@ -81,25 +96,29 @@ class OrchestratorService : Service() {
         }
 
         scope.launch {
+            // Start collecting voice inputs
+            collectVoiceInputs()
+
             // Collect MediaProjection
-            ProjectionState.mediaProjection.collect { mediaProjection ->
-                if (mediaProjection != null) {
-                    Log.d(TAG, "MediaProjection is available")
+            collectMediaProjections()
+        }
+    }
 
-                    // Start the screenshot extractor
-                    screenshotExtractor.start(
-                        mediaProjection,
-                        scope,
-                        callback = { bitmap ->
-                            latestScreenshot = bitmap
-                        }
-                    )
+    private suspend fun collectMediaProjections() {
+        ProjectionState.mediaProjection.collect { mediaProjection ->
+            if (mediaProjection != null) {
+                Log.d(TAG, "MediaProjection is available")
 
-                    // Start collecting voice inputs
-                    collectVoiceInputs()
-                } else {
-                    Log.e(TAG, "MediaProjection is null")
-                }
+                // Start the screenshot extractor
+                screenshotExtractor.start(
+                    mediaProjection,
+                    scope,
+                    callback = { bitmap ->
+                        latestScreenshot = bitmap
+                    },
+                )
+            } else {
+                Log.e(TAG, "MediaProjection is null")
             }
         }
     }
@@ -124,6 +143,7 @@ class OrchestratorService : Service() {
     }
 
     private suspend fun voiceTriggered(voiceFile: File) {
+        Log.d(TAG, "Voice input received: ${voiceFile.name}")
         val transcribedText = transcribeAudioFile(voiceFile)
         if (transcribedText != null) {
             Log.d(TAG, "Transcribed Text: $transcribedText")
@@ -142,7 +162,9 @@ class OrchestratorService : Service() {
 
         // Send the audio file to LLM Whisper API for transcription
         return try {
-            llmService.transcribeAudio(audioFile)
+            val transcription = llmService.transcribeAudio(audioFile)
+            Log.d(TAG, "Transcription result: $transcription")
+            transcription
         } catch (e: Exception) {
             Log.e(TAG, "Error transcribing audio", e)
             null
@@ -150,7 +172,7 @@ class OrchestratorService : Service() {
     }
 
     private suspend fun captureAndSendData(userMessage: String, isRequestEcho: Boolean) {
-        Log.d(TAG, "Capturing data and sending to LLM")
+        Log.d(TAG, "Capturing data before sending to LLM")
         val rootNode = accessibilityHelper.getRootNode()
         if (rootNode == null) {
             Log.e(TAG, "Failed to get root node")
@@ -164,8 +186,11 @@ class OrchestratorService : Service() {
                 accessibilityHelper.getDefaultDisplay()!!,
             )
 
+        Log.v(TAG, "XRAY Data: $xrayData")
+
         // Prepare recent events
         val events = eventsRecorder.getAndResetEventHistory()
+        Log.v(TAG, "Recent Events: $events")
 
         // Use the latest screenshot captured
         var screenshotBase64: String? = null
@@ -185,22 +210,28 @@ class OrchestratorService : Service() {
             userMessage
         }
 
-        // Combine the general prompt with the user message and XRAY data
-        val prompt =
-            "${PromptConstants.GENERAL_PROMPT}\n\n" +
-                "User Input: \"$message\"\n\n" +
-                "Latest events: \n$events\n\n" +
-                "View Hierarchy Data: \n$xrayData"
+        Log.d(TAG, "Sending message to LLM: \"$message\"")
 
         // Send message to LLM with image
         try {
-            val llmResponse = llmService.sendMessage(prompt, screenshotBase64)
-            Log.d(TAG, "Received LLM Response: $llmResponse")
+            val llmResponse = llmService.sendMessage(thread!!.id, message, screenshotBase64)
+            Log.d(TAG, "Received LLM Response")
+            Log.v(TAG, "LLM Response: $llmResponse")
 
             if (llmResponse != null) {
                 processLLMResponse(llmResponse)
+                // Check if more actions are needed
+                if (llmResponse.requiresFurtherAction && echoAttempts < maxEchoAttempts) {
+                    echoAttempts++
+                    Log.d(TAG, "Requires further action, echo attempt $echoAttempts")
+                    // Trigger echo without new user input
+                    captureAndSendData("", isRequestEcho = true)
+                } else {
+                    echoAttempts = 0 // Reset for next user request
+                    Log.d(TAG, "No further action required or max echo attempts reached")
+                }
             } else {
-                Log.w(TAG, "Exit due to null llmResponse")
+                Log.w(TAG, "LLM Response is null")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error sending message to LLM Service", e)
@@ -223,18 +254,16 @@ class OrchestratorService : Service() {
             Log.d(TAG, "Performing action: $action")
             accessibilityHelper.performAction(action)
         }
-
-        // TODO: After performing actions, send Request-Echo if necessary
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun createNotification(): Notification {
-        val notificationChannelId = "SERVER_MOCK_SERVICE_CHANNEL"
+        val notificationChannelId = "ASSISTANT_SERVICE_CHANNEL"
 
         val channel = NotificationChannel(
             notificationChannelId,
-            "Server Mock Service",
+            "Assistant Service",
             NotificationManager.IMPORTANCE_LOW,
         )
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

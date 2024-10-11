@@ -14,7 +14,9 @@ object LLMModule {
 
     @Provides
     @Singleton
-    fun provideLLMService(): LLMService = ChatGPTService()
+    fun provideLLMService(
+        moshiProvider: MoshiProvider,
+    ): LLMService = ChatGPTService(moshiProvider)
 
     @Provides
     @Singleton

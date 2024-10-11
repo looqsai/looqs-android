@@ -1,0 +1,28 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "msg_ZUS78y5kvhEAwi0VFxmuje3Z",
+      "object": "thread.message",
+      "created_at": 1728577575,
+      "assistant_id": "asst_wMrjZoz0CyMwQmrmLitt7GV3",
+      "thread_id": "thread_duxU78Rp0pfi4QRoirktwo4k",
+      "run_id": "run_lGLsmGCm9Ms9dxBKvL5fGrrP",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": {
+            "value": "{\n  \"spoken\": \"You are currently in your photo gallery. The screen is showing your latest photos in grid format. Let's open the most recent one for a closer look.\",\n  \"actions\": [\n    {\n      \"type\": \"tap\",\n      \"pathToElement\": [\n        {\n          \"class\": \"android.widget.GridView\",\n          \"index\": 0\n        },\n        {\n          \"class\": \"android.widget.ImageView\",\n          \"index\": 0\n        }\n      ]\n    }\n  ]\n}",
+            "annotations": []
+          }
+        }
+      ],
+      "attachments": [],
+      "metadata": {}
+    }
+  ],
+  "first_id": "msg_ZUS78y5kvhEAwi0VFxmuje3Z",
+  "last_id": "msg_AdOOIXcf2hsahLwiDutj94Ao",
+  "has_more": false
+}

@@ -41,4 +41,6 @@ dependencies {
     implementation(libs.moshi.reflection)
     implementation(libs.moshi.codegen)
     ksp(libs.moshi.codegen)
+
+    testImplementation(libs.okio)
 }
