@@ -8,18 +8,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.io.IOException
 import javax.inject.Inject
 
-class AudioRecorderImpl @Inject constructor() : AudioRecorder {
+class AudioRecorderImpl @Inject constructor(
+    private var mediaRecorder: MediaRecorder,
+) : AudioRecorder {
     private val TAG = "AudioRecorderInterface"
-
-    private var mediaRecorder: MediaRecorder? = null
 
     private val _recordingState = MutableStateFlow<RecordingState>(RecordingState.Idle)
 
     override val state: StateFlow<RecordingState>
         get() = _recordingState.asStateFlow()
 
+    // TODO: Handle the media recorder for mock
     override fun startRecording(path: String) {
-        mediaRecorder = MediaRecorder().apply {
+        mediaRecorder.apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
@@ -38,17 +39,15 @@ class AudioRecorderImpl @Inject constructor() : AudioRecorder {
 
     override fun stopRecording() {
         try {
-            mediaRecorder?.apply {
+            mediaRecorder.apply {
                 stop()
                 release()
             }
-            mediaRecorder = null
             Log.d(TAG, "Recording stopped")
             _recordingState.value = RecordingState.Finished
         } catch (e: RuntimeException) {
             Log.e(TAG, "Failed to stop recording", e)
+            _recordingState.value = RecordingState.Error("Failed to stop recording")
         }
     }
-
-    // TODO: mediaRecorder?.release()
 }

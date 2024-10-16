@@ -21,6 +21,7 @@ import com.sean8.jeminai.core.accessibility.util.TreeNode
 import com.sean8.jeminai.core.accessibility.util.populateChildren
 import com.sean8.jeminai.core.actions.Action
 import com.sean8.jeminai.core.llm.LLMService
+import com.sean8.jeminai.core.llm.PromptConstants
 import com.sean8.jeminai.core.llm.TextToSpeechService
 import com.sean8.jeminai.core.llm.models.Assistant
 import com.sean8.jeminai.core.llm.models.LLMResponse
@@ -203,18 +204,25 @@ class OrchestratorService : Service() {
         }
 
         // Prepare the message
-        val message = if (isRequestEcho) {
+        val userMessage = if (isRequestEcho) {
             // Request-Echo: No new user input
             ""
         } else {
             userMessage
         }
 
-        Log.d(TAG, "Sending message to LLM: \"$message\"")
+        Log.d(TAG, "User message to LLM: \"$userMessage\"")
+
+        // Combine the general prompt with the user message and XRAY data
+        val prompt =
+            "${PromptConstants.GENERAL_PROMPT}\n\n" +
+                "User Input: \"$userMessage\"\n\n" +
+                "Latest events: $events\n\n" +
+                "XRAY: $xrayData"
 
         // Send message to LLM with image
         try {
-            val llmResponse = llmService.sendMessage(thread!!.id, message, screenshotBase64)
+            val llmResponse = llmService.sendMessage(thread!!.id, prompt, screenshotBase64)
             Log.d(TAG, "Received LLM Response")
             Log.v(TAG, "LLM Response: $llmResponse")
 

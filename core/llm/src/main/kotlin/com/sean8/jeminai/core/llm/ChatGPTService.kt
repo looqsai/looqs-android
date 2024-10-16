@@ -382,7 +382,6 @@ class ChatGPTService @Inject constructor(
                 // Extract JSON object from the assistant's reply
                 val jsonString = extractJsonFromText(assistantText)
                 if (jsonString != null) {
-                    Log.d(TAG, "Extracted JSON: $jsonString")
                     // Parse the JSON string
                     val jsonReader = JsonReader.of(Buffer().writeUtf8(jsonString))
                     try {

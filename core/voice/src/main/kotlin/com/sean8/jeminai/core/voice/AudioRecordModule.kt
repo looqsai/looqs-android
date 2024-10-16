@@ -12,7 +12,7 @@ abstract class AudioModule {
 
     @Binds
     @ServiceScoped
-    abstract fun bindAudio(
-        impl: AudioRecorderImpl,
-    ): AudioRecorder
+    abstract fun bindAudioRecorderFactory(
+        impl: AudioRecorderFactoryImpl,
+    ): AudioRecorderFactory
 }

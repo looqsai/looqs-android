@@ -15,6 +15,7 @@ import android.view.accessibility.AccessibilityManager
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import androidx.core.view.accessibility.AccessibilityEventCompat.TYPE_WINDOWS_CHANGED
+import androidx.core.view.accessibility.AccessibilityEventCompat.TYPE_WINDOW_CONTENT_CHANGED
 import com.sean8.jeminai.core.accessibility.util.AccessibilityNodeInfoXmlDumper
 import com.sean8.jeminai.core.accessibility.util.TreeNode
 import com.sean8.jeminai.core.accessibility.util.defaultDisplay
@@ -60,6 +61,10 @@ class AppAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val source: AccessibilityNodeInfo? = event?.source
+
+        if (event?.eventType == TYPE_WINDOW_CONTENT_CHANGED) {
+            return
+        }
 
         Log.v(TAG, "Event received: ${event.toString()} , Source Node found? $source")
 

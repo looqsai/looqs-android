@@ -23,7 +23,7 @@ class AudioRecordingService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
     @Inject
-    lateinit var audioRecorder: AudioRecorder
+    lateinit var audioRecorderFactory: AudioRecorderFactory
 
     @Inject
     lateinit var voiceTransmitter: VoiceTransmitter
@@ -63,11 +63,13 @@ class AudioRecordingService : Service() {
                     "${cacheDir.absolutePath}/recording_${System.currentTimeMillis()}.m4a"
                 Log.d(TAG, "Output file: $outputFilePath")
 
-                audioRecorder.startRecording(outputFilePath)
-                delay(duration * 1000L)
-                audioRecorder.stopRecording()
+                audioRecorderFactory.createAudioRecorder().let { recorder ->
+                    recorder.startRecording(outputFilePath)
+                    delay(duration * 1000L)
+                    recorder.stopRecording()
 
-                voiceTransmitter.postNewRecording(File(outputFilePath))
+                    voiceTransmitter.postNewRecording(File(outputFilePath))
+                }
             }
 
             else -> {
