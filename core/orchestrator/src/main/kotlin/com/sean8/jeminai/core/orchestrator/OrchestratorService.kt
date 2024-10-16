@@ -22,6 +22,7 @@ import com.sean8.jeminai.core.accessibility.util.populateChildren
 import com.sean8.jeminai.core.actions.Action
 import com.sean8.jeminai.core.llm.LLMService
 import com.sean8.jeminai.core.llm.PromptConstants
+import com.sean8.jeminai.core.llm.PromptConstants.ECHO_REQUEST
 import com.sean8.jeminai.core.llm.TextToSpeechService
 import com.sean8.jeminai.core.llm.models.Assistant
 import com.sean8.jeminai.core.llm.models.LLMResponse
@@ -63,7 +64,7 @@ class OrchestratorService : Service() {
     private lateinit var accessibilityHelper: AccessibilityServiceHelper
 
     private var echoAttempts = 0
-    private val maxEchoAttempts = 5
+    private val maxEchoAttempts = 3
 
     @Inject
     @ApplicationScope
@@ -148,7 +149,7 @@ class OrchestratorService : Service() {
         val transcribedText = transcribeAudioFile(voiceFile)
         if (transcribedText != null) {
             Log.d(TAG, "Transcribed Text: $transcribedText")
-            captureAndSendData(userMessage = transcribedText, isRequestEcho = false)
+            captureAndSendData(userMessage = transcribedText)
         } else {
             Log.e(TAG, "Failed to transcribe audio")
         }
@@ -172,7 +173,7 @@ class OrchestratorService : Service() {
         }
     }
 
-    private suspend fun captureAndSendData(userMessage: String, isRequestEcho: Boolean) {
+    private suspend fun captureAndSendData(userMessage: String) {
         Log.d(TAG, "Capturing data before sending to LLM")
         val rootNode = accessibilityHelper.getRootNode()
         if (rootNode == null) {
@@ -203,14 +204,6 @@ class OrchestratorService : Service() {
             Log.w(TAG, "No screenshot available")
         }
 
-        // Prepare the message
-        val userMessage = if (isRequestEcho) {
-            // Request-Echo: No new user input
-            ""
-        } else {
-            userMessage
-        }
-
         Log.d(TAG, "User message to LLM: \"$userMessage\"")
 
         // Combine the general prompt with the user message and XRAY data
@@ -233,7 +226,7 @@ class OrchestratorService : Service() {
                     echoAttempts++
                     Log.d(TAG, "Requires further action, echo attempt $echoAttempts")
                     // Trigger echo without new user input
-                    captureAndSendData("", isRequestEcho = true)
+                    captureAndSendData(ECHO_REQUEST)
                 } else {
                     echoAttempts = 0 // Reset for next user request
                     Log.d(TAG, "No further action required or max echo attempts reached")
