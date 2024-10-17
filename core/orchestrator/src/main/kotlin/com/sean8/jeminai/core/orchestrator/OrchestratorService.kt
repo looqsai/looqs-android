@@ -20,12 +20,11 @@ import com.sean8.jeminai.core.accessibility.util.AccessibilityServiceHelper
 import com.sean8.jeminai.core.accessibility.util.TreeNode
 import com.sean8.jeminai.core.accessibility.util.populateChildren
 import com.sean8.jeminai.core.actions.Action
+import com.sean8.jeminai.core.data.repository.UserDataRepository
 import com.sean8.jeminai.core.llm.LLMService
 import com.sean8.jeminai.core.llm.PromptConstants.ECHO_REQUEST
 import com.sean8.jeminai.core.llm.TextToSpeechService
-import com.sean8.jeminai.core.llm.models.Assistant
 import com.sean8.jeminai.core.llm.models.LLMResponse
-import com.sean8.jeminai.core.llm.models.Thread
 import com.sean8.jeminai.core.screenshot.ProjectedScreenshotExtractor
 import com.sean8.jeminai.core.screenshot.ProjectionState
 import com.sean8.jeminai.core.util.encodeBitmapToBase64
@@ -34,6 +33,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
@@ -64,6 +64,9 @@ class OrchestratorService : Service() {
     @Inject
     lateinit var assistantPrompt: String
 
+    @Inject
+    lateinit var userDataRepository: UserDataRepository
+
     private lateinit var accessibilityHelper: AccessibilityServiceHelper
 
     private var echoAttempts = 0
@@ -75,20 +78,17 @@ class OrchestratorService : Service() {
 
     private var latestScreenshot: Bitmap? = null
 
-    private var assistant: Assistant? = null
-    private var thread: Thread? = null
+    private var assistantId: String? = null
+    private var threadId: String? = null
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "OrchestratorService created")
         accessibilityHelper = accessibilityHelperLazy.get()
 
-        // Initialize Assistant and Thread
+        // Initialize assistantId and threadId
         scope.launch {
-            Log.d(TAG, "Initializing assistant and thread...")
-            assistant = llmService.initializeAssistant(assistantPrompt)
-            thread = llmService.createThread()
-            Log.d(TAG, "Assistant and thread initialized")
+            initializeAssistantAndThread()
         }
 
         if (VERSION.SDK_INT >= VERSION_CODES.R) {
@@ -100,12 +100,37 @@ class OrchestratorService : Service() {
             )
         }
 
+        // Start collecting voice inputs and media projections
         scope.launch {
-            // Start collecting voice inputs
             collectVoiceInputs()
-
-            // Collect MediaProjection
             collectMediaProjections()
+        }
+    }
+
+    private suspend fun initializeAssistantAndThread() {
+        // Load assistantId and threadId from UserData
+        val userData = userDataRepository.userData.first()
+        assistantId = userData.assistantId
+        threadId = userData.threadId
+
+        if (assistantId.isNullOrEmpty()) {
+            Log.d(TAG, "Assistant ID is null, initializing assistant")
+            val assistant = llmService.initializeAssistant(assistantPrompt)
+            assistantId = assistant.id
+            userDataRepository.setAssistantId(assistantId!!)
+            Log.d(TAG, "Assistant initialized with ID: $assistantId")
+        } else {
+            Log.d(TAG, "Using existing assistant ID: $assistantId")
+        }
+
+        if (threadId.isNullOrEmpty()) {
+            Log.d(TAG, "Thread ID is null, creating thread")
+            val thread = llmService.createThread()
+            threadId = thread.id
+            userDataRepository.setThreadId(threadId!!)
+            Log.d(TAG, "Thread created with ID: $threadId")
+        } else {
+            Log.d(TAG, "Using existing thread ID: $threadId")
         }
     }
 
@@ -211,13 +236,17 @@ class OrchestratorService : Service() {
 
         // Combine the general prompt with the user message and XRAY data
         val prompt =
-                "User Input: \"$userMessage\"\n\n" +
+            "User Input: \"$userMessage\"\n\n" +
                 "Latest events: $events\n\n" +
                 "XRAY: $xrayData"
 
         // Send message to LLM with image
         try {
-            val llmResponse = llmService.sendMessage(thread!!.id, prompt, screenshotBase64)
+            if (assistantId == null || threadId == null) {
+                initializeAssistantAndThread()
+            }
+            val llmResponse =
+                llmService.sendMessage(assistantId!!, threadId!!, prompt, screenshotBase64)
             Log.d(TAG, "Received LLM Response")
             Log.v(TAG, "LLM Response: $llmResponse")
 
@@ -237,7 +266,9 @@ class OrchestratorService : Service() {
                 Log.w(TAG, "LLM Response is null")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error sending message to LLM Service: $e", e)
+            Log.e(TAG, "Error sending message to LLM Service", e)
+            // Reset assistant and thread IDs
+            resetAssistantAndThread()
         }
     }
 
@@ -257,9 +288,19 @@ class OrchestratorService : Service() {
             Log.d(TAG, "Performing action: $action")
             accessibilityHelper.performAction(action)
 
-            // TODO: Make this delay reactive on the state of events coming from accessibilty (TYPE_VIEW_CLICKED followed by a TYPE_WINDOW_STATE_CHANGED)
+            // TODO: Make this delay reactive on the state of events coming from accessibility
             delay(1_000)
         }
+    }
+
+    private suspend fun resetAssistantAndThread() {
+        Log.d(TAG, "Resetting assistant and thread IDs")
+        assistantId = null
+        threadId = null
+        userDataRepository.setAssistantId("")
+        userDataRepository.setThreadId("")
+        // Re-initialize assistant and thread
+        initializeAssistantAndThread()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

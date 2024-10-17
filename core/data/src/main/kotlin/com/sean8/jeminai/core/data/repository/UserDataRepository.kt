@@ -8,4 +8,6 @@ interface UserDataRepository {
     val userData: Flow<UserData>
     suspend fun setDarkThemeConfig(darkThemeConfig: DarkThemeConfig)
     suspend fun setProjectionApproved(projectionApproved: Boolean)
+    suspend fun setAssistantId(assistantId: String)
+    suspend fun setThreadId(threadId: String)
 }

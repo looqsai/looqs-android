@@ -35,6 +35,14 @@ class TestUserDataRepository : UserDataRepository {
         }
     }
 
+    override suspend fun setAssistantId(assistantId: String) {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun setThreadId(threadId: String) {
+        TODO("Not yet implemented")
+    }
+
     /**
      * A test-only API to allow setting of user data directly.
      */

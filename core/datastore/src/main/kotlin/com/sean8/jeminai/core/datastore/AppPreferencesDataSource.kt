@@ -24,6 +24,8 @@ class AppPreferencesDataSource @Inject constructor(
                     DarkThemeConfigProto.DARK_THEME_CONFIG_DARK -> DarkThemeConfig.DARK
                 },
                 isProjectionApproved = it.isProjectionApproved,
+                assistantId = it.assistantId.takeIf { id -> id.isNotBlank() },
+                threadId = it.threadId.takeIf { id -> id.isNotBlank() },
             )
         }
 
@@ -45,6 +47,22 @@ class AppPreferencesDataSource @Inject constructor(
         userPreferences.updateData {
             it.copy {
                 this.isProjectionApproved = projectionApproved
+            }
+        }
+    }
+
+    suspend fun setAssistantId(assistantId: String) {
+        userPreferences.updateData {
+            it.copy {
+                this.assistantId = assistantId
+            }
+        }
+    }
+
+    suspend fun setThreadId(threadId: String) {
+        userPreferences.updateData {
+            it.copy {
+                this.threadId = threadId
             }
         }
     }

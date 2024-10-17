@@ -9,6 +9,7 @@ interface LLMService {
     suspend fun initializeAssistant(assistantInstructions: String): Assistant
     suspend fun createThread(): Thread
     suspend fun sendMessage(
+        assistantId: String,
         threadId: String,
         message: String,
         imageBase64: String? = null,

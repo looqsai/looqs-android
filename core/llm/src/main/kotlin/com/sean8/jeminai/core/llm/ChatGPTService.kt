@@ -45,9 +45,6 @@ class ChatGPTService @Inject constructor(
     private val betaHeader = "OpenAI-Beta"
     private val betaHeaderValue = "assistants=v2"
 
-    private var assistantId: String? = null
-    private var threadId: String? = null
-
     private val moshi: Moshi = moshiProvider.moshi
 
     private val messagesAdapter = moshi.adapter(MessagesResponse::class.java)
@@ -94,8 +91,7 @@ class ChatGPTService @Inject constructor(
                         throw IOException("Failed to create assistant")
                     } else {
                         val assistant = assistantAdapter.fromJson(responseBody!!)
-                        assistantId = assistant?.id
-                        Log.d(TAG, "Assistant created with ID: $assistantId")
+                        Log.d(TAG, "Assistant created with ID: ${assistant?.id}")
                         assistant ?: throw IOException("Failed to parse assistant")
                     }
                 }
@@ -126,12 +122,14 @@ class ChatGPTService @Inject constructor(
                     val responseBody = response.body?.string()
                     Log.v(TAG, "Create Thread Response: $responseBody")
                     if (!response.isSuccessful) {
-                        Log.e(TAG, "Failed to create thread: ${response.code} ${response.message}")
+                        Log.e(
+                            TAG,
+                            "Failed to create thread: ${response.code} ${response.message}",
+                        )
                         throw IOException("Failed to create thread")
                     } else {
                         val thread = threadAdapter.fromJson(responseBody!!)
-                        threadId = thread?.id
-                        Log.d(TAG, "Thread created with ID: $threadId")
+                        Log.d(TAG, "Thread created with ID: ${thread?.id}")
                         thread ?: throw IOException("Failed to parse thread")
                     }
                 }
@@ -143,6 +141,7 @@ class ChatGPTService @Inject constructor(
     }
 
     override suspend fun sendMessage(
+        assistantId: String,
         threadId: String,
         message: String,
         imageBase64: String?,
@@ -194,7 +193,10 @@ class ChatGPTService @Inject constructor(
                     val responseBody = response.body?.string()
                     Log.v(TAG, "Add Message Response: $responseBody")
                     if (!response.isSuccessful) {
-                        Log.e(TAG, "Failed to add message: ${response.code} ${response.message}")
+                        Log.e(
+                            TAG,
+                            "Failed to add message: ${response.code} ${response.message}",
+                        )
                         throw IOException("Failed to add message")
                     } else {
                         Log.d(TAG, "Message added to thread successfully")
@@ -207,16 +209,16 @@ class ChatGPTService @Inject constructor(
         }
 
         // Create and run the Assistant on the Thread
-        return runAssistantOnThread(threadId)
+        return runAssistantOnThread(assistantId, threadId)
     }
 
-    private suspend fun runAssistantOnThread(threadId: String): LLMResponse? {
+    private suspend fun runAssistantOnThread(assistantId: String, threadId: String): LLMResponse? {
         Log.d(TAG, "Running assistant on thread ID: $threadId")
         return withContext(Dispatchers.IO) {
             val url = "$baseUrl/threads/$threadId/runs"
 
             val runRequest = RunRequest(
-                assistantId = assistantId!!,
+                assistantId = assistantId,
             )
 
             val requestBodyString = runRequestAdapter.toJson(runRequest)
@@ -236,7 +238,10 @@ class ChatGPTService @Inject constructor(
                     val responseBody = response.body?.string()
                     Log.v(TAG, "Run Assistant Response: $responseBody")
                     if (!response.isSuccessful) {
-                        Log.e(TAG, "Failed to run assistant: ${response.code} ${response.message}")
+                        Log.e(
+                            TAG,
+                            "Failed to run assistant: ${response.code} ${response.message}",
+                        )
                         return@withContext null
                     } else {
                         Log.d(TAG, "Assistant run successfully initiated")
@@ -288,7 +293,10 @@ class ChatGPTService @Inject constructor(
                     val responseBody = response.body?.string()
                     Log.v(TAG, "Run Status Response: $responseBody")
                     if (!response.isSuccessful) {
-                        Log.e(TAG, "Failed to get run status: ${response.code} ${response.message}")
+                        Log.e(
+                            TAG,
+                            "Failed to get run status: ${response.code} ${response.message}",
+                        )
                         return null
                     } else {
                         val runStatusResponse = runResponseAdapter.fromJson(responseBody!!)
@@ -304,7 +312,6 @@ class ChatGPTService @Inject constructor(
                                 )
                                 return status
                             }
-
                             else -> {
                                 // If status is QUEUED or IN_PROGRESS, wait and poll again
                             }
@@ -320,7 +327,6 @@ class ChatGPTService @Inject constructor(
         Log.e(TAG, "Run did not complete within expected time")
         return null
     }
-
 
     private suspend fun parseAssistantReply(threadId: String): LLMResponse? {
         Log.d(TAG, "Parsing assistant's reply for thread ID: $threadId")
@@ -339,7 +345,10 @@ class ChatGPTService @Inject constructor(
                     val responseBody = response.body?.string()
                     Log.v(TAG, "Get Messages Response: $responseBody")
                     if (!response.isSuccessful) {
-                        Log.e(TAG, "Failed to get messages: ${response.code} ${response.message}")
+                        Log.e(
+                            TAG,
+                            "Failed to get messages: ${response.code} ${response.message}",
+                        )
                         return@withContext null
                     } else {
                         val messagesResponse = messagesAdapter.fromJson(responseBody!!)
@@ -403,7 +412,6 @@ class ChatGPTService @Inject constructor(
         return null
     }
 
-
     private fun extractJsonFromText(text: String): String? {
         val jsonRegex = Regex("""\{.*\}""", RegexOption.DOT_MATCHES_ALL)
         val matchResult = jsonRegex.find(text)
@@ -421,7 +429,6 @@ class ChatGPTService @Inject constructor(
                 "spoken" -> {
                     spoken = jsonReader.nextString()
                 }
-
                 "actions" -> {
                     jsonReader.beginArray()
                     while (jsonReader.hasNext()) {
@@ -438,11 +445,9 @@ class ChatGPTService @Inject constructor(
                     }
                     jsonReader.endArray()
                 }
-
                 "requiresFurtherAction" -> {
                     requiresFurtherAction = jsonReader.nextBoolean()
                 }
-
                 else -> {
                     jsonReader.skipValue()
                 }
@@ -490,7 +495,10 @@ class ChatGPTService @Inject constructor(
                 val responseBody = response.body?.string()
                 Log.v(TAG, "Transcription Response: $responseBody")
                 if (!response.isSuccessful) {
-                    Log.e(TAG, "Transcription request failed: ${response.code} ${response.message}")
+                    Log.e(
+                        TAG,
+                        "Transcription request failed: ${response.code} ${response.message}",
+                    )
                     null
                 } else {
                     if (responseBody != null) {

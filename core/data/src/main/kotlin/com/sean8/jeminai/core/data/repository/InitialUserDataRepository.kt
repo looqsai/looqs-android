@@ -19,4 +19,12 @@ internal class InitialUserDataRepository @Inject constructor(
     override suspend fun setProjectionApproved(projectionApproved: Boolean) {
         appPreferenceDataSource.setProjectionApproved(projectionApproved)
     }
+
+    override suspend fun setAssistantId(assistantId: String) {
+        appPreferenceDataSource.setAssistantId(assistantId)
+    }
+
+    override suspend fun setThreadId(threadId: String) {
+        appPreferenceDataSource.setThreadId(threadId)
+    }
 }
