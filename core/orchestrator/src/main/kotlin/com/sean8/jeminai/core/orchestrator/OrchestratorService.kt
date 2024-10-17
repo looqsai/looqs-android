@@ -21,7 +21,6 @@ import com.sean8.jeminai.core.accessibility.util.TreeNode
 import com.sean8.jeminai.core.accessibility.util.populateChildren
 import com.sean8.jeminai.core.actions.Action
 import com.sean8.jeminai.core.llm.LLMService
-import com.sean8.jeminai.core.llm.PromptConstants
 import com.sean8.jeminai.core.llm.PromptConstants.ECHO_REQUEST
 import com.sean8.jeminai.core.llm.TextToSpeechService
 import com.sean8.jeminai.core.llm.models.Assistant
@@ -34,6 +33,7 @@ import com.sean8.jeminai.core.voice.VoiceTransmitter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
@@ -61,6 +61,9 @@ class OrchestratorService : Service() {
     @Inject
     lateinit var textToSpeechService: TextToSpeechService
 
+    @Inject
+    lateinit var assistantPrompt: String
+
     private lateinit var accessibilityHelper: AccessibilityServiceHelper
 
     private var echoAttempts = 0
@@ -83,7 +86,7 @@ class OrchestratorService : Service() {
         // Initialize Assistant and Thread
         scope.launch {
             Log.d(TAG, "Initializing assistant and thread...")
-            assistant = llmService.initializeAssistant()
+            assistant = llmService.initializeAssistant(assistantPrompt)
             thread = llmService.createThread()
             Log.d(TAG, "Assistant and thread initialized")
         }
@@ -208,7 +211,6 @@ class OrchestratorService : Service() {
 
         // Combine the general prompt with the user message and XRAY data
         val prompt =
-            "${PromptConstants.GENERAL_PROMPT}\n\n" +
                 "User Input: \"$userMessage\"\n\n" +
                 "Latest events: $events\n\n" +
                 "XRAY: $xrayData"
@@ -235,11 +237,11 @@ class OrchestratorService : Service() {
                 Log.w(TAG, "LLM Response is null")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error sending message to LLM Service", e)
+            Log.e(TAG, "Error sending message to LLM Service: $e", e)
         }
     }
 
-    private fun processLLMResponse(llmResponse: LLMResponse) {
+    private suspend fun processLLMResponse(llmResponse: LLMResponse) {
         Log.d(TAG, "Processing LLM Response")
         llmResponse.spoken?.let { spoken ->
             if (spoken.lowercase() != "none") {
@@ -254,6 +256,9 @@ class OrchestratorService : Service() {
         llmResponse.actions?.forEach { action: Action ->
             Log.d(TAG, "Performing action: $action")
             accessibilityHelper.performAction(action)
+
+            // TODO: Make this delay reactive on the state of events coming from accessibilty (TYPE_VIEW_CLICKED followed by a TYPE_WINDOW_STATE_CHANGED)
+            delay(1_000)
         }
     }
 

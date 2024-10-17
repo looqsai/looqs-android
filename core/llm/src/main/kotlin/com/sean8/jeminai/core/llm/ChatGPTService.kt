@@ -59,12 +59,12 @@ class ChatGPTService @Inject constructor(
     private val assistantRequestAdapter = moshi.adapter(AssistantRequest::class.java)
     private val runResponseAdapter = moshi.adapter(RunResponse::class.java)
 
-    override suspend fun initializeAssistant(): Assistant {
+    override suspend fun initializeAssistant(assistantInstructions: String): Assistant {
         return withContext(Dispatchers.IO) {
             val url = "$baseUrl/assistants"
 
             val assistantRequest = AssistantRequest(
-                instructions = PromptConstants.GENERAL_PROMPT,
+                instructions = assistantInstructions,
                 name = "VI Assistant",
                 model = "gpt-4o-mini",
             )

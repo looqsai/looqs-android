@@ -6,6 +6,13 @@ plugins {
 
 android {
     namespace = "com.sean8.jeminai.core.orchestrator"
+
+//    // Ensure that assets are included
+//    sourceSets {
+//        getByName("main") {
+//            assets.srcDirs("src/main/res/assets")
+//        }
+//    }
 }
 
 dependencies {

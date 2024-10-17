@@ -6,7 +6,7 @@ import com.sean8.jeminai.core.llm.models.Thread
 import java.io.File
 
 interface LLMService {
-    suspend fun initializeAssistant(): Assistant
+    suspend fun initializeAssistant(assistantInstructions: String): Assistant
     suspend fun createThread(): Thread
     suspend fun sendMessage(
         threadId: String,
