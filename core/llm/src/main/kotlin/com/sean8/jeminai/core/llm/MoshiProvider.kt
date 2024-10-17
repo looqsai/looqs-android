@@ -34,12 +34,12 @@ class MoshiProvider @Inject constructor() {
         .add(
             PolymorphicJsonAdapterFactory.of(RequestContentBlock::class.java, "type")
                 .withSubtype(RequestContentBlock.TextBlock::class.java, "text")
-                .withSubtype(RequestContentBlock.ImageBlock::class.java, "image_url"),
+                .withSubtype(RequestContentBlock.ImageFileBlock::class.java, "image_file"),
         )
         .add(
             PolymorphicJsonAdapterFactory.of(ResponseContentBlock::class.java, "type")
                 .withSubtype(ResponseContentBlock.TextBlock::class.java, "text")
-                .withSubtype(ResponseContentBlock.ImageBlock::class.java, "image_url"),
+                .withSubtype(ResponseContentBlock.ImageFileBlock::class.java, "image_file"),
         )
         .add(KotlinJsonAdapterFactory())
         .build()

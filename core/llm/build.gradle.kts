@@ -40,6 +40,7 @@ dependencies {
     implementation(libs.moshi)
     implementation(libs.moshi.reflection)
     implementation(libs.moshi.codegen)
+    implementation(project(":core:util"))
     ksp(libs.moshi.codegen)
 
     testImplementation(libs.okio)

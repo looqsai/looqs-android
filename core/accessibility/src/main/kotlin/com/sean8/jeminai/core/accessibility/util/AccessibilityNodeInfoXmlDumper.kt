@@ -5,7 +5,6 @@ import android.util.Xml
 import android.view.Display
 import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
-import com.sean8.jeminai.core.util.getShortBoundsInScreen
 import com.sean8.jeminai.core.util.screenHeight
 import com.sean8.jeminai.core.util.screenWidth
 import org.xmlpull.v1.XmlSerializer
@@ -104,20 +103,20 @@ object AccessibilityNodeInfoXmlDumper {
         serializer.attribute("", "index", index.toString())
         serializer.attribute("", "text", safeCharSeqToString(node.text))
         serializer.attribute("", "resource-id", safeCharSeqToString(node.viewIdResourceName))
-        serializer.attribute("", "class", node.getClassNameSafe())
-        serializer.attribute("", "package", safeCharSeqToString(node.packageName))
+//        serializer.attribute("", "class", node.getClassNameSafe())
+//        serializer.attribute("", "package", safeCharSeqToString(node.packageName))
         serializer.attribute("", "content-desc", safeCharSeqToString(node.contentDescription))
-        serializer.attribute("", "checkable", node.isCheckable.toString())
-        serializer.attribute("", "checked", node.isChecked.toString())
+//        serializer.attribute("", "checkable", node.isCheckable.toString())
+//        serializer.attribute("", "checked", node.isChecked.toString())
         serializer.attribute("", "clickable", node.isClickable.toString())
         serializer.attribute("", "enabled", node.isEnabled.toString())
-        serializer.attribute("", "focusable", node.isFocusable.toString())
-        serializer.attribute("", "focused", node.isFocused.toString())
-        serializer.attribute("", "scrollable", node.isScrollable.toString())
-        serializer.attribute("", "long-clickable", node.isLongClickable.toString())
-        serializer.attribute("", "password", node.isPassword.toString())
-        serializer.attribute("", "selected", node.isSelected.toString())
-        serializer.attribute("", "bounds", node.getShortBoundsInScreen())
+//        serializer.attribute("", "focusable", node.isFocusable.toString())
+//        serializer.attribute("", "focused", node.isFocused.toString())
+//        serializer.attribute("", "scrollable", node.isScrollable.toString())
+//        serializer.attribute("", "long-clickable", node.isLongClickable.toString())
+//        serializer.attribute("", "password", node.isPassword.toString())
+//        serializer.attribute("", "selected", node.isSelected.toString())
+//        serializer.attribute("", "bounds", node.getShortBoundsInScreen())
 
         val count = treeRoot?.children?.size ?: node.childCount
         for (i in 0 until count) {

@@ -12,7 +12,7 @@ interface LLMService {
         assistantId: String,
         threadId: String,
         message: String,
-        imageBase64: String? = null,
+        imageFile: File? = null,
     ): LLMResponse?
     suspend fun transcribeAudio(audioFile: File): String?
 }

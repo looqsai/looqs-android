@@ -4,7 +4,8 @@ import android.util.Log
 import com.sean8.jeminai.core.actions.Action
 import com.sean8.jeminai.core.llm.models.Assistant
 import com.sean8.jeminai.core.llm.models.AssistantRequest
-import com.sean8.jeminai.core.llm.models.ImageUrlContent
+import com.sean8.jeminai.core.llm.models.FileUploadResponse
+import com.sean8.jeminai.core.llm.models.ImageFileContent
 import com.sean8.jeminai.core.llm.models.LLMResponse
 import com.sean8.jeminai.core.llm.models.Message
 import com.sean8.jeminai.core.llm.models.MessagesResponse
@@ -16,6 +17,7 @@ import com.sean8.jeminai.core.llm.models.RunResponse
 import com.sean8.jeminai.core.llm.models.RunStatus
 import com.sean8.jeminai.core.llm.models.Thread
 import com.sean8.jeminai.core.llm.models.TranscriptionResponse
+import com.sean8.jeminai.core.util.MimeTypeUtil
 import com.squareup.moshi.JsonReader
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +57,7 @@ class ChatGPTService @Inject constructor(
     private val transcriptionResponseAdapter = moshi.adapter(TranscriptionResponse::class.java)
     private val assistantRequestAdapter = moshi.adapter(AssistantRequest::class.java)
     private val runResponseAdapter = moshi.adapter(RunResponse::class.java)
+    private val fileUploadResponseAdapter = moshi.adapter(FileUploadResponse::class.java)
 
     override suspend fun initializeAssistant(assistantInstructions: String): Assistant {
         return withContext(Dispatchers.IO) {
@@ -144,7 +147,7 @@ class ChatGPTService @Inject constructor(
         assistantId: String,
         threadId: String,
         message: String,
-        imageBase64: String?,
+        imageFile: File?,
     ): LLMResponse? {
         Log.d(TAG, "Sending message to thread ID: $threadId")
         // Build the content blocks
@@ -154,15 +157,22 @@ class ChatGPTService @Inject constructor(
         contentBlocks.add(RequestContentBlock.TextBlock(text = message))
 
         // Add the image if provided
-        if (imageBase64 != null) {
-            contentBlocks.add(
-                RequestContentBlock.ImageBlock(
-                    imageUrl = ImageUrlContent(
-                        url = "data:image/jpeg;base64,$imageBase64",
+        if (imageFile != null && imageFile.exists()) {
+            Log.d(TAG, "Uploading image file: ${imageFile.absolutePath}")
+            val uploadedFileId = uploadImageFile(imageFile)
+            if (uploadedFileId != null) {
+                Log.d(TAG, "Image file uploaded with ID: $uploadedFileId")
+                contentBlocks.add(
+                    RequestContentBlock.ImageFileBlock(
+                        imageFile = ImageFileContent(
+                            fileId = uploadedFileId,
+                            detail = "high",
+                        ),
                     ),
-                ),
-            )
-            Log.d(TAG, "Image included in the message")
+                )
+            } else {
+                Log.e(TAG, "Failed to upload image file")
+            }
         }
 
         // Create the user message
@@ -210,6 +220,59 @@ class ChatGPTService @Inject constructor(
 
         // Create and run the Assistant on the Thread
         return runAssistantOnThread(assistantId, threadId)
+    }
+
+    private suspend fun uploadImageFile(imageFile: File): String? {
+        Log.d(TAG, "Uploading image file to OpenAI")
+        return withContext(Dispatchers.IO) {
+            val url = "$baseUrl/files"
+
+            val mediaType = MimeTypeUtil.getMimeType(imageFile)
+            val fileRequestBody = imageFile.asRequestBody(mediaType?.toMediaTypeOrNull())
+
+            val requestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart(
+                    "file",
+                    imageFile.name,
+                    fileRequestBody,
+                )
+                .addFormDataPart("purpose", "vision")
+                .build()
+
+            val request = Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .addHeader("Authorization", "Bearer $apiKey")
+                .build()
+
+            try {
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string()
+                    Log.v(TAG, "Upload File Response: $responseBody")
+                    if (!response.isSuccessful) {
+                        Log.e(
+                            TAG,
+                            "Failed to upload image file: ${response.code} ${response.message}",
+                        )
+                        return@withContext null
+                    } else {
+                        // Parse the response to get the file ID
+                        val fileUploadResponse = fileUploadResponseAdapter.fromJson(responseBody!!)
+                        val fileId = fileUploadResponse?.id
+                        if (fileId != null) {
+                            Log.d(TAG, "Image file uploaded with ID: $fileId")
+                        } else {
+                            Log.e(TAG, "Failed to get file ID from upload response")
+                        }
+                        return@withContext fileId
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error uploading image file", e)
+                return@withContext null
+            }
+        }
     }
 
     private suspend fun runAssistantOnThread(assistantId: String, threadId: String): LLMResponse? {

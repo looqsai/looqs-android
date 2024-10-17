@@ -27,7 +27,6 @@ import com.sean8.jeminai.core.llm.TextToSpeechService
 import com.sean8.jeminai.core.llm.models.LLMResponse
 import com.sean8.jeminai.core.screenshot.ProjectedScreenshotExtractor
 import com.sean8.jeminai.core.screenshot.ProjectionState
-import com.sean8.jeminai.core.util.encodeBitmapToBase64
 import com.sean8.jeminai.core.voice.VoiceTransmitter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +35,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Provider
 
@@ -201,6 +201,7 @@ class OrchestratorService : Service() {
         }
     }
 
+
     private suspend fun captureAndSendData(userMessage: String) {
         Log.d(TAG, "Capturing data before sending to LLM")
         val rootNode = accessibilityHelper.getRootNode()
@@ -223,11 +224,21 @@ class OrchestratorService : Service() {
         Log.v(TAG, "Recent Events: $events")
 
         // Use the latest screenshot captured
-        var screenshotBase64: String? = null
+        var screenshotFile: File? = null
         val bitmap = latestScreenshot
         if (bitmap != null) {
-            screenshotBase64 = encodeBitmapToBase64(bitmap)
-            Log.d(TAG, "Screenshot captured and encoded")
+            // Save the bitmap to a temporary file
+            try {
+                screenshotFile = File(cacheDir, "screenshot_${System.currentTimeMillis()}.jpg")
+                val outputStream = FileOutputStream(screenshotFile)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+                outputStream.flush()
+                outputStream.close()
+                Log.d(TAG, "Screenshot captured and saved to file: ${screenshotFile.absolutePath}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error saving screenshot to file", e)
+                screenshotFile = null
+            }
         } else {
             Log.w(TAG, "No screenshot available")
         }
@@ -246,7 +257,7 @@ class OrchestratorService : Service() {
                 initializeAssistantAndThread()
             }
             val llmResponse =
-                llmService.sendMessage(assistantId!!, threadId!!, prompt, screenshotBase64)
+                llmService.sendMessage(assistantId!!, threadId!!, prompt, screenshotFile)
             Log.d(TAG, "Received LLM Response")
             Log.v(TAG, "LLM Response: $llmResponse")
 
@@ -269,9 +280,11 @@ class OrchestratorService : Service() {
             Log.e(TAG, "Error sending message to LLM Service", e)
             // Reset assistant and thread IDs
             resetAssistantAndThread()
+        } finally {
+            // Clean up the temporary screenshot file
+            screenshotFile?.delete()
         }
     }
-
     private suspend fun processLLMResponse(llmResponse: LLMResponse) {
         Log.d(TAG, "Processing LLM Response")
         llmResponse.spoken?.let { spoken ->

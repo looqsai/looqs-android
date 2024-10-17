@@ -32,7 +32,7 @@ class AudioRecordingService : Service() {
         const val ACTION_START_RECORDING = "com.sean8.jeminai.ACTION_START_RECORDING"
         const val EXTRA_RECORDING_DURATION = "extra_recording_duration"
         const val DEFAULT_RECORDING_DURATION = 10 // in seconds
-        private const val NOTIFICATION_ID = 1
+        private const val NOTIFICATION_ID = 2
     }
 
     override fun onCreate() {

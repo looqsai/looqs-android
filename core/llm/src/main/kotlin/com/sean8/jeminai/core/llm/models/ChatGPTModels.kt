@@ -33,24 +33,6 @@ data class RequestChatMessage(
     val content: List<RequestContentBlock>,
 )
 
-// Content blocks used in the request messages
-@JsonClass(generateAdapter = true, generator = "sealed:type")
-sealed class RequestContentBlock {
-
-    @JsonClass(generateAdapter = true)
-    @Json(name = "text")
-    data class TextBlock(
-        val text: String,
-    ) : RequestContentBlock()
-
-    @JsonClass(generateAdapter = true)
-    @Json(name = "image_url")
-    data class ImageBlock(
-        @Json(name = "image_url")
-        val imageUrl: ImageUrlContent,
-    ) : RequestContentBlock()
-}
-
 // Image URL content for image blocks in requests
 @JsonClass(generateAdapter = true)
 data class ImageUrlContent(
@@ -93,10 +75,10 @@ sealed class ResponseContentBlock {
     ) : ResponseContentBlock()
 
     @JsonClass(generateAdapter = true)
-    @Json(name = "image_url")
-    data class ImageBlock(
-        @Json(name = "image_url")
-        val imageUrl: ImageUrlContent,
+    @Json(name = "image_file")
+    data class ImageFileBlock(
+        @Json(name = "image_file")
+        val imageFile: ImageFileContent,
     ) : ResponseContentBlock()
 }
 
@@ -248,3 +230,36 @@ enum class RunStatus {
     UNKNOWN
 }
 
+@JsonClass(generateAdapter = true)
+data class FileUploadResponse(
+    val id: String,
+    @Json(name = "object") val objectType: String,
+    val bytes: Int,
+    @Json(name = "created_at") val createdAt: Long,
+    val filename: String,
+    val purpose: String,
+)
+
+// Modify RequestContentBlock to include ImageFileBlock
+@JsonClass(generateAdapter = true, generator = "sealed:type")
+sealed class RequestContentBlock {
+
+    @JsonClass(generateAdapter = true)
+    @Json(name = "text")
+    data class TextBlock(
+        val text: String,
+    ) : RequestContentBlock()
+
+    @JsonClass(generateAdapter = true)
+    @Json(name = "image_file")
+    data class ImageFileBlock(
+        @Json(name = "image_file")
+        val imageFile: ImageFileContent,
+    ) : RequestContentBlock()
+}
+
+@JsonClass(generateAdapter = true)
+data class ImageFileContent(
+    @Json(name = "file_id") val fileId: String,
+    val detail: String? = null, // "low", "high", or "auto"
+)
