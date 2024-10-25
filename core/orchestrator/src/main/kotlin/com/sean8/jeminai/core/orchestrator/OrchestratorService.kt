@@ -70,7 +70,7 @@ class OrchestratorService : Service() {
     private lateinit var accessibilityHelper: AccessibilityServiceHelper
 
     private var echoAttempts = 0
-    private val maxEchoAttempts = 3
+    private val maxEchoAttempts = 5
 
     @Inject
     @ApplicationScope
@@ -80,6 +80,13 @@ class OrchestratorService : Service() {
 
     private var assistantId: String? = null
     private var threadId: String? = null
+
+    // Define constants for the action and extra key
+    companion object {
+        private const val NOTIFICATION_ID = 1
+        private const val ACTION_DEMO = "com.sean8.jeminai.ACTION_DEMO"
+        private const val EXTRA_DEMO_VOICE_INPUT_TEXT = "DEMO_VOICE_INPUT_TEXT"
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -107,11 +114,38 @@ class OrchestratorService : Service() {
         }
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand called with intent: $intent")
+        if (intent != null) {
+            val action = intent.action
+            if (action == ACTION_DEMO) {
+                val demoVoiceInputText = intent.getStringExtra(EXTRA_DEMO_VOICE_INPUT_TEXT)
+                if (!demoVoiceInputText.isNullOrEmpty()) {
+                    Log.d(TAG, "Received demo voice input text: $demoVoiceInputText")
+                    // Process the injected voice input text as if it was transcribed from voice
+                    scope.launch {
+                        captureAndSendData(userMessage = demoVoiceInputText)
+                    }
+                } else {
+                    Log.e(TAG, "No voice input text provided in intent")
+                }
+            }
+        }
+        return START_STICKY
+    }
+
     private suspend fun initializeAssistantAndThread() {
         // Load assistantId and threadId from UserData
         val userData = userDataRepository.userData.first()
         assistantId = userData.assistantId
         threadId = userData.threadId
+
+
+        if (true) {
+            Log.w(TAG, "SKIPPING PERSISTENT ASSISTANT AND THREADS FOR TEMP DEBUG PURPOSES ")
+            assistantId = null
+            threadId = null
+        }
 
         if (assistantId.isNullOrEmpty()) {
             Log.d(TAG, "Assistant ID is null, initializing assistant")
@@ -201,7 +235,6 @@ class OrchestratorService : Service() {
         }
     }
 
-
     private suspend fun captureAndSendData(userMessage: String) {
         Log.d(TAG, "Capturing data before sending to LLM")
         val rootNode = accessibilityHelper.getRootNode()
@@ -248,7 +281,7 @@ class OrchestratorService : Service() {
         // Combine the general prompt with the user message and XRAY data
         val prompt =
             "User Input: \"$userMessage\"\n\n" +
-                "Latest events: $events\n\n" +
+//                "Latest events: $events\n\n" + //TODO: Events...
                 "XRAY: $xrayData"
 
         // Send message to LLM with image
@@ -285,6 +318,7 @@ class OrchestratorService : Service() {
             screenshotFile?.delete()
         }
     }
+
     private suspend fun processLLMResponse(llmResponse: LLMResponse) {
         Log.d(TAG, "Processing LLM Response")
         llmResponse.spoken?.let { spoken ->
@@ -302,7 +336,7 @@ class OrchestratorService : Service() {
             accessibilityHelper.performAction(action)
 
             // TODO: Make this delay reactive on the state of events coming from accessibility
-            delay(1_000)
+            delay(1_500)
         }
     }
 
@@ -336,9 +370,5 @@ class OrchestratorService : Service() {
             .setOngoing(true)
 
         return notificationBuilder.build()
-    }
-
-    companion object {
-        private const val NOTIFICATION_ID = 1
     }
 }

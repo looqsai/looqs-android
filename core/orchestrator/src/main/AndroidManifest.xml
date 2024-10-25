@@ -6,6 +6,10 @@
     <application>
         <service
             android:name=".OrchestratorService"
-            android:exported="false"/>
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.sean8.jeminai.ACTION_DEMO" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

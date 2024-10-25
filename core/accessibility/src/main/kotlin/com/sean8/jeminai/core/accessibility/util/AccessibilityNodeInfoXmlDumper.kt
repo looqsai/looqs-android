@@ -5,6 +5,7 @@ import android.util.Xml
 import android.view.Display
 import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
+import com.sean8.jeminai.core.util.getShortBoundsInScreen
 import com.sean8.jeminai.core.util.screenHeight
 import com.sean8.jeminai.core.util.screenWidth
 import org.xmlpull.v1.XmlSerializer
@@ -14,42 +15,16 @@ import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 import java.util.regex.Pattern
 
-/**
- * This way we produce the same XML as Appium.
- * It was originally copied from Android source code, then changed according to Appium implementation mostly
- * to create a safe encoding and such:
- * https://github.com/appium/appium-uiautomator2-server/blob/master/app/src/main/java/io/appium/uiautomator2/core/AccessibilityNodeInfoDumper.java
- */
 object AccessibilityNodeInfoXmlDumper {
     private const val TAG = "AccessibilityNodeInfoXmlDumper"
     private val baos = ByteArrayOutputStream(262144)
-    private const val DEFAULT_VIEW_CLASS_NAME = "android.view.View"
+    private const val DEFAULT_VIEW_CLASS_NAME = "View"
     private const val NON_XML_CHAR_REPLACEMENT = "?"
-
-    private val NAF_EXCLUDED_CLASSES = arrayOf(
-        android.widget.GridView::class.java.name,
-        android.widget.GridLayout::class.java.name,
-        android.widget.ListView::class.java.name,
-        android.widget.TableLayout::class.java.name,
-    )
 
     @Synchronized
     @Throws(IOException::class)
     fun getXml(treeRoot: TreeNode<AccessibilityNodeInfo>, display: Display): String {
         dumpWindowHierarchy(treeRoot.value, display, baos, treeRoot, null)
-        val result = baos.toString(StandardCharsets.UTF_8.name())
-        baos.reset()
-        return result
-    }
-
-    @Synchronized
-    @Throws(IOException::class)
-    fun getXml(
-        activeWindowRoot: AccessibilityNodeInfo,
-        display: Display,
-        target: AccessibilityNodeInfo?,
-    ): String {
-        dumpWindowHierarchy(activeWindowRoot, display, baos, null, target)
         val result = baos.toString(StandardCharsets.UTF_8.name())
         baos.reset()
         return result
@@ -89,34 +64,34 @@ object AccessibilityNodeInfoXmlDumper {
         target: AccessibilityNodeInfo?,
     ) {
         if (node == null) {
-            Log.e(" ", "Trying to XML dumpNodeRec a null node, aborting node")
+            Log.e(TAG, "Trying to XML dumpNodeRec a null node, aborting node")
             return
         }
 
-        val startingTag = toXmlNodeName(node.getClassNameSafe())
-        serializer.startTag("", startingTag)
+        val nodeName = toXmlNodeName(node.getClassNameSafe())
+        serializer.startTag("", nodeName)
 
-        if (!nafExcludedClass(node) && !nafCheck(node, treeRoot)) {
-            serializer.attribute("", "NAF", "true")
+        // Only include attributes if they have meaningful values
+        val text = safeCharSeqToString(node.text)
+        if (text.isNotEmpty()) {
+            serializer.attribute("", "text", text)
         }
 
-        serializer.attribute("", "index", index.toString())
-        serializer.attribute("", "text", safeCharSeqToString(node.text))
-        serializer.attribute("", "resource-id", safeCharSeqToString(node.viewIdResourceName))
-//        serializer.attribute("", "class", node.getClassNameSafe())
-//        serializer.attribute("", "package", safeCharSeqToString(node.packageName))
-        serializer.attribute("", "content-desc", safeCharSeqToString(node.contentDescription))
-//        serializer.attribute("", "checkable", node.isCheckable.toString())
-//        serializer.attribute("", "checked", node.isChecked.toString())
-        serializer.attribute("", "clickable", node.isClickable.toString())
-        serializer.attribute("", "enabled", node.isEnabled.toString())
-//        serializer.attribute("", "focusable", node.isFocusable.toString())
-//        serializer.attribute("", "focused", node.isFocused.toString())
-//        serializer.attribute("", "scrollable", node.isScrollable.toString())
-//        serializer.attribute("", "long-clickable", node.isLongClickable.toString())
-//        serializer.attribute("", "password", node.isPassword.toString())
-//        serializer.attribute("", "selected", node.isSelected.toString())
-//        serializer.attribute("", "bounds", node.getShortBoundsInScreen())
+        val contentDesc = safeCharSeqToString(node.contentDescription)
+        if (contentDesc.isNotEmpty()) {
+            serializer.attribute("", "content-desc", contentDesc)
+        }
+
+        if (node.isClickable) {
+            serializer.attribute("", "clickable", "true")
+        }
+
+        if (!node.isEnabled) { // Include only if false, since true is default
+            serializer.attribute("", "enabled", "false")
+        }
+
+        // Always include bounds
+        serializer.attribute("", "bounds", node.getShortBoundsInScreen())
 
         val count = treeRoot?.children?.size ?: node.childCount
         for (i in 0 until count) {
@@ -132,43 +107,7 @@ object AccessibilityNodeInfoXmlDumper {
                 Log.v(TAG, "Null child $node")
             }
         }
-        serializer.endTag("", startingTag)
-    }
-
-    private fun nafExcludedClass(node: AccessibilityNodeInfo): Boolean {
-        val className = safeCharSeqToString(node.className)
-        return NAF_EXCLUDED_CLASSES.any { className.endsWith(it) }
-    }
-
-    private fun nafCheck(
-        node: AccessibilityNodeInfo,
-        treeRoot: TreeNode<AccessibilityNodeInfo>?,
-    ): Boolean {
-        val isNaf = node.isClickable && node.isEnabled &&
-            safeCharSeqToString(node.contentDescription).isEmpty() &&
-            safeCharSeqToString(node.text).isEmpty()
-
-        if (!isNaf) return true
-
-        return childNafCheck(node, treeRoot)
-    }
-
-    private fun childNafCheck(
-        node: AccessibilityNodeInfo,
-        treeRoot: TreeNode<AccessibilityNodeInfo>?,
-    ): Boolean {
-        val childCount = treeRoot?.children?.size ?: node.childCount
-        for (x in 0 until childCount) {
-            val treeRootNext = treeRoot?.children?.get(x)
-            val childNode = treeRootNext?.value ?: node.getChild(x)
-
-            if (!safeCharSeqToString(childNode?.contentDescription).isEmpty() ||
-                !safeCharSeqToString(childNode?.text).isEmpty()
-            ) return true
-
-            if (childNafCheck(childNode, treeRootNext)) return true
-        }
-        return false
+        serializer.endTag("", nodeName)
     }
 
     private fun safeCharSeqToString(source: CharSequence?): String {
@@ -180,15 +119,12 @@ object AccessibilityNodeInfoXmlDumper {
     private fun toXmlNodeName(className: String?): String {
         if (className.isNullOrBlank()) return DEFAULT_VIEW_CLASS_NAME
 
-        var fixedName = className.replace("[$@#&]".toRegex(), ".")
-            .replace("\\.+".toRegex(), ".")
-            .replace("(^\\.|\\.$)".toRegex(), "")
+        // Remove package prefixes
+        var fixedName = className.substringAfterLast('.')
 
+        // Sanitize the name
         fixedName = toNodeName(fixedName)
         if (fixedName.isBlank()) fixedName = DEFAULT_VIEW_CLASS_NAME
-        if (fixedName != className) {
-            Log.v(TAG, "Rewrote class name '$className' to XML node name '$fixedName'")
-        }
         return fixedName
     }
 
@@ -197,10 +133,9 @@ object AccessibilityNodeInfoXmlDumper {
         return XML10_TAG_PATTERN.matcher(nodeName).replaceAll("_")
     }
 
-    /** Returns the class name if exist, or View as a fallback class **/
+    /** Returns the class name if it exists, or "View" as a fallback **/
     private fun AccessibilityNodeInfo.getClassNameSafe(): String =
         if (className.isNullOrEmpty()) View::class.java.name else className.toString()
-
 
     private val XML10_PATTERN = Pattern.compile(
         "[^" + "\u0009\r\n" +
@@ -224,4 +159,3 @@ object AccessibilityNodeInfoXmlDumper {
             "\ud800\udc00-\udbff\udfff" + "]",
     )
 }
-
