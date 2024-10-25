@@ -43,8 +43,6 @@ class ScreenshotService : Service() {
             stopSelf()
         }
 
-        // Stop the service since its job is done
-        stopSelf()
         return START_NOT_STICKY
     }
 
