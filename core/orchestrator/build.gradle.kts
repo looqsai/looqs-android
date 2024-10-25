@@ -17,8 +17,9 @@ android {
 
 dependencies {
     implementation(libs.hilt.coroutines)
-    implementation(projects.core.data)
+    implementation(libs.okhttp)
 
+    implementation(projects.core.data)
     implementation(projects.core.accessibility)
     implementation(projects.core.voice)
     implementation(projects.core.llm)

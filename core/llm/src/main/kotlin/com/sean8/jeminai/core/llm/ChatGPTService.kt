@@ -66,7 +66,7 @@ class ChatGPTService @Inject constructor(
             val assistantRequest = AssistantRequest(
                 instructions = assistantInstructions,
                 name = "VI Assistant",
-                model = "gpt-4o-mini",
+                model = "gpt-4o",
             )
 
             val requestBodyString = assistantRequestAdapter.toJson(assistantRequest)
@@ -354,7 +354,6 @@ class ChatGPTService @Inject constructor(
             try {
                 client.newCall(request).execute().use { response ->
                     val responseBody = response.body?.string()
-                    Log.v(TAG, "Run Status Response: $responseBody")
                     if (!response.isSuccessful) {
                         Log.e(
                             TAG,
@@ -364,10 +363,15 @@ class ChatGPTService @Inject constructor(
                     } else {
                         val runStatusResponse = runResponseAdapter.fromJson(responseBody!!)
                         val status = runStatusResponse?.status
+
                         Log.d(TAG, "Run status (attempt ${attempt + 1}): $status")
+                        if (status != RunStatus.IN_PROGRESS) {
+                            Log.v(TAG, "Run Status Response: $responseBody")
+                        }
+
                         when (status) {
                             RunStatus.COMPLETED -> return status
-                            RunStatus.FAILED, RunStatus.CANCELLED, RunStatus.EXPIRED -> return status
+                            RunStatus.FAILED, RunStatus.CANCELLED, RunStatus.EXPIRED, RunStatus.INCOMPLETE, RunStatus.UNKNOWN -> return status
                             RunStatus.REQUIRES_ACTION -> {
                                 Log.e(
                                     TAG,
@@ -406,7 +410,8 @@ class ChatGPTService @Inject constructor(
             try {
                 client.newCall(request).execute().use { response ->
                     val responseBody = response.body?.string()
-                    Log.v(TAG, "Get Messages Response: $responseBody")
+                    val minimizedResponseBody = minimizeDataArray(responseBody!!)
+                    Log.v(TAG, "Get Messages Response: $minimizedResponseBody")
                     if (!response.isSuccessful) {
                         Log.e(
                             TAG,
@@ -443,6 +448,35 @@ class ChatGPTService @Inject constructor(
                 return@withContext null
             }
         }
+    }
+
+    // Helper function for clearer logcat prints
+    private fun minimizeDataArray(responseBody: String): String {
+        try {
+            val jsonAdapter = moshi.adapter(Any::class.java).lenient()
+            val jsonObject = jsonAdapter.fromJson(responseBody) as? Map<String, Any>
+            if (jsonObject != null && jsonObject.containsKey("data")) {
+                val dataArray = jsonObject["data"] as? List<Any>
+                if (dataArray != null) {
+                    val minimizedDataArray = dataArray.mapIndexed { index, item ->
+                        if (index == 0) {
+                            // Keep newlines in the latest message (first item)
+                            item
+                        } else {
+                            // Remove newlines for other items
+                            val itemJson = moshi.adapter(Any::class.java).toJson(item)
+                            itemJson.replace("\n", " ")
+                        }
+                    }
+                    val modifiedJsonObject = jsonObject.toMutableMap()
+                    modifiedJsonObject["data"] = minimizedDataArray
+                    return moshi.adapter(Any::class.java).toJson(modifiedJsonObject)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error minimizing data array", e)
+        }
+        return responseBody
     }
 
     private fun processAssistantMessage(message: Message): LLMResponse? {

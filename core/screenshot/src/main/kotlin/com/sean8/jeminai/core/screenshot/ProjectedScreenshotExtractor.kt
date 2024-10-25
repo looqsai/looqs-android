@@ -14,10 +14,6 @@ import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.scopes.ServiceScoped
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @ServiceScoped
@@ -29,24 +25,11 @@ class ProjectedScreenshotExtractor @Inject constructor(
     private var mediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
 
-    private val imageReader: ImageReader
-    private val imageReaderHandlerThread: HandlerThread
-    private val imageReaderHandler: Handler
-
-    private var captureJob: Job? = null
+    private var imageReader: ImageReader? = null
+    private var imageReaderHandlerThread: HandlerThread? = null
+    private var imageReaderHandler: Handler? = null
 
     private var screenshotCallback: ((Bitmap?) -> Unit)? = null
-
-    init {
-        imageReaderHandlerThread = HandlerThread("ImageReaderHandler").apply { start() }
-        imageReaderHandler = Handler(imageReaderHandlerThread.looper)
-
-        imageReader = ImageReader.newInstance(
-            context.resources.displayMetrics.widthPixels,
-            context.resources.displayMetrics.heightPixels,
-            PixelFormat.RGBA_8888, 2
-        )
-    }
 
     fun start(
         mediaProjection: MediaProjection,
@@ -56,30 +39,43 @@ class ProjectedScreenshotExtractor @Inject constructor(
         this.mediaProjection = mediaProjection
         this.screenshotCallback = callback
 
-        if (virtualDisplay == null) {
-            virtualDisplay = mediaProjection.createVirtualDisplay(
-                "ScreenCapture",
-                context.resources.displayMetrics.widthPixels,
-                context.resources.displayMetrics.heightPixels,
-                context.resources.displayMetrics.densityDpi,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-                imageReader.surface, null, null
-            )
-        }
+        // Initialize ImageReader and Handler
+        imageReaderHandlerThread = HandlerThread("ImageReaderHandler").apply { start() }
+        imageReaderHandler = Handler(imageReaderHandlerThread!!.looper)
 
-        // Start capturing screenshots at fixed intervals
-        captureJob = scope.launch(Dispatchers.IO) {
-            while (true) {
-                captureScreenshot()
-                delay(1000) // Delay for 1 second
-            }
-        }
+        val metrics = context.resources.displayMetrics
+
+        imageReader = ImageReader.newInstance(
+            metrics.widthPixels,
+            metrics.heightPixels,
+            PixelFormat.RGBA_8888,
+            2,
+        )
+
+        imageReader?.setOnImageAvailableListener(
+            { reader ->
+                processImage(reader)
+            },
+            imageReaderHandler,
+        )
+
+        virtualDisplay = mediaProjection.createVirtualDisplay(
+            "ScreenCapture",
+            metrics.widthPixels,
+            metrics.heightPixels,
+            metrics.densityDpi,
+            DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC or DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+            imageReader?.surface,
+            null,
+            null,
+        )
     }
 
-    private fun captureScreenshot() {
-        val image: Image? = imageReader.acquireLatestImage()
-        if (image != null) {
-            try {
+    private fun processImage(reader: ImageReader) {
+        var image: Image? = null
+        try {
+            image = reader.acquireLatestImage()
+            if (image != null) {
                 val width = image.width
                 val height = image.height
                 val plane = image.planes[0]
@@ -95,31 +91,33 @@ class ProjectedScreenshotExtractor @Inject constructor(
                 bitmap.copyPixelsFromBuffer(buffer)
 
                 val croppedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height)
+                bitmap.recycle() // Recycle the original bitmap
 
                 // Invoke the callback with the bitmap
                 screenshotCallback?.invoke(croppedBitmap)
                 Log.v(TAG, "Screenshot captured")
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to process image: ${e.message}")
-            } finally {
-                image.close()
+            } else {
+                Log.v(TAG, "Image is null")
             }
-        } else {
-            Log.v(TAG, "Image is null, will use latest")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to process image: ${e.message}")
+        } finally {
+            image?.close()
         }
     }
 
     fun stop() {
-        captureJob?.cancel()
-        captureJob = null
-
         virtualDisplay?.release()
         virtualDisplay = null
 
         mediaProjection?.stop()
         mediaProjection = null
 
-        imageReader.close()
-        imageReaderHandlerThread.quitSafely()
+        imageReader?.close()
+        imageReader = null
+
+        imageReaderHandlerThread?.quitSafely()
+        imageReaderHandlerThread = null
+        imageReaderHandler = null
     }
 }

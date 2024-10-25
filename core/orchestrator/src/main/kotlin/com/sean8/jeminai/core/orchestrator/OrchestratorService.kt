@@ -30,10 +30,17 @@ import com.sean8.jeminai.core.screenshot.ProjectionState
 import com.sean8.jeminai.core.voice.VoiceTransmitter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
@@ -80,6 +87,12 @@ class OrchestratorService : Service() {
 
     private var assistantId: String? = null
     private var threadId: String? = null
+
+    // Add OkHttpClient instance
+    private val httpClient = OkHttpClient()
+
+    // Add your server's URL (replace with your Mac's IP address)
+    private val pythonServerUrl = "http://192.168.1.233:1050/upload_image"
 
     // Define constants for the action and extra key
     companion object {
@@ -268,6 +281,8 @@ class OrchestratorService : Service() {
                 outputStream.flush()
                 outputStream.close()
                 Log.d(TAG, "Screenshot captured and saved to file: ${screenshotFile.absolutePath}")
+
+                uploadImageToPythonServer(screenshotFile)
             } catch (e: Exception) {
                 Log.e(TAG, "Error saving screenshot to file", e)
                 screenshotFile = null
@@ -316,6 +331,37 @@ class OrchestratorService : Service() {
         } finally {
             // Clean up the temporary screenshot file
             screenshotFile?.delete()
+        }
+    }
+
+    private suspend fun uploadImageToPythonServer(imageFile: File) {
+        withContext(Dispatchers.IO) {
+            try {
+                val mediaType = "image/jpeg".toMediaTypeOrNull()
+                val requestBody = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart(
+                        "image",
+                        imageFile.name,
+                        imageFile.asRequestBody(mediaType),
+                    )
+                    .build()
+
+                val request = Request.Builder()
+                    .url(pythonServerUrl)
+                    .post(requestBody)
+                    .build()
+
+                val response = httpClient.newCall(request).execute()
+                if (response.isSuccessful) {
+                    Log.d(TAG, "Image uploaded to Python server successfully")
+                } else {
+                    Log.e(TAG, "Failed to upload image to Python server: ${response.code}")
+                }
+                response.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error uploading image to Python server", e)
+            }
         }
     }
 
