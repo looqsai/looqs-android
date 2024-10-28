@@ -85,33 +85,52 @@ Your primary responsibilities are:
 
           - `"serverAction"`: An integer representing the key code.
 
-              - Examples:
+              - Possible values:
+              - BACK = 1;
+                HOME = 2;
+                RECENTS = 3;
+                NOTIFICATIONS = 4;
+                QUICK_SETTINGS = 5;
+                TAKE_SCREENSHOT = 9;
 
-                  - `3` for Home (`KeyEvent.KEYCODE_HOME`).
+- **Text Input**:
 
-                  - `4` for Back (`KeyEvent.KEYCODE_BACK`).
+    - **Type**: `"text"`
 
-                  - `187` for Recent Apps (`KeyEvent.KEYCODE_APP_SWITCH`).
+    - **Required Fields**:
 
-  - **Text Input**:
+        - `"x"`: A float indicating the x-coordinate of the target `EditText`.
 
-      - **Type**: `"text"`
+        - `"y"`: A float indicating the y-coordinate of the target `EditText`.
 
-      - **Required Fields**:
+        - `"text"`: The string of text to input.
 
-          - `"text"`: The string of text to input.
+    - **Coordinate Calculation**:
 
-          - `"pathToElement"`: An array of integers representing the path to the target UI element
-            in the view hierarchy.
+        - Calculate the center point of the `EditText`'s bounds using the same method as for tap
+          actions.
 
-  - **Text Editor Action**:
+        - **Bounds Parsing**:
 
-      - **Type**: `"keyboard-special-keys"`
+            - The `bounds` attribute is in the format `bounds="[x1,y1][x2,y2]"`.
 
-      - **Required Fields**:
+            - Extract `x1`, `y1`, `x2`, and `y2` by parsing the `bounds` string.
 
-          - `"action"`: A string representing the editor action (
-            e.g., `"next"`, `"done"`, `"send"`).
+        - **Center Point Calculation**:
+
+            - **x-coordinate**: `x = (x1 + x2) / 2`
+
+            - **y-coordinate**: `y = (y1 + y2) / 2`
+
+- **Example**:
+
+    - If the `EditText` has `bounds="[100,200][300,400]"`, calculate:
+
+        - `x = (100 + 300) / 2 = 200`
+
+        - `y = (200 + 400) / 2 = 300`
+
+    - Use these coordinates in the `"x"` and `"y"` fields of the `text` action.
 
 - **Coordinate System**:
 
