@@ -14,13 +14,21 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityManager
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
+import android.view.inputmethod.EditorInfo
 import androidx.core.view.accessibility.AccessibilityEventCompat.TYPE_WINDOWS_CHANGED
 import androidx.core.view.accessibility.AccessibilityEventCompat.TYPE_WINDOW_CONTENT_CHANGED
 import com.sean8.jeminai.core.accessibility.util.AccessibilityNodeInfoXmlDumper
 import com.sean8.jeminai.core.accessibility.util.TreeNode
 import com.sean8.jeminai.core.accessibility.util.defaultDisplay
 import com.sean8.jeminai.core.accessibility.util.populateChildren
-import com.sean8.jeminai.core.actions.Action
+import com.sean8.jeminai.core.actions.Action.DeviceKeyAction
+import com.sean8.jeminai.core.actions.Action.LongClickAction
+import com.sean8.jeminai.core.actions.Action.Point
+import com.sean8.jeminai.core.actions.Action.ScrollAction
+import com.sean8.jeminai.core.actions.Action.SwipeAction
+import com.sean8.jeminai.core.actions.Action.TapAction
+import com.sean8.jeminai.core.actions.Action.TextAction
+import com.sean8.jeminai.core.actions.Action.TextEditorAction
 import com.sean8.jeminai.core.util.getBoundsInScreen
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -159,7 +167,7 @@ class AppAccessibilityService : AccessibilityService() {
         return "Timeout while trying to launch package $packageName"
     }
 
-    fun performTapAction(action: Action.TapAction) {
+    fun performTapAction(action: TapAction) {
         val path = Path().apply {
             moveTo(action.x, action.y)
         }
@@ -169,7 +177,7 @@ class AppAccessibilityService : AccessibilityService() {
         dispatchGesture(gesture, null, null)
     }
 
-    fun performLongClickAction(action: Action.LongClickAction) {
+    fun performLongClickAction(action: LongClickAction) {
         val path = Path().apply {
             moveTo(action.x, action.y)
         }
@@ -179,17 +187,17 @@ class AppAccessibilityService : AccessibilityService() {
         dispatchGesture(gesture, null, null)
     }
 
-    fun performSwipeAction(action: Action.SwipeAction) {
+    fun performSwipeAction(action: SwipeAction) {
         performGestureAction(action.start, action.end, action.swipeDuration)
     }
 
-    fun performScrollAction(action: Action.ScrollAction) {
+    fun performScrollAction(action: ScrollAction) {
         performGestureAction(action.start, action.end, action.swipeDuration)
     }
 
     private fun performGestureAction(
-        start: Action.Point,
-        end: Action.Point,
+        start: Point,
+        end: Point,
         duration: Long,
     ) {
         val path = Path().apply {
@@ -208,12 +216,11 @@ class AppAccessibilityService : AccessibilityService() {
         dispatchGesture(gesture, null, null)
     }
 
-    fun performDeviceKeyAction(action: Action.DeviceKeyAction) {
+    fun performDeviceKeyAction(action: DeviceKeyAction) {
         val result = when (action.serverAction) {
             KeyEvent.KEYCODE_BACK -> performGlobalAction(GLOBAL_ACTION_BACK)
             KeyEvent.KEYCODE_HOME -> performGlobalAction(GLOBAL_ACTION_HOME)
             KeyEvent.KEYCODE_APP_SWITCH -> performGlobalAction(GLOBAL_ACTION_RECENTS)
-            KeyEvent.KEYCODE_NOTIFICATION -> performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
             else -> false
         }
         if (!result) {
@@ -221,7 +228,7 @@ class AppAccessibilityService : AccessibilityService() {
         }
     }
 
-    fun performTextAction(action: Action.TextAction) {
+    fun performTextAction(action: TextAction) {
         val node = findNodeByPath(action.pathToElement)
         node?.let {
             val arguments = Bundle().apply {
@@ -234,9 +241,23 @@ class AppAccessibilityService : AccessibilityService() {
         } ?: Log.e("AppAccessibilityService", "Failed to find node for text action")
     }
 
-    fun performTextEditorAction(action: Action.TextEditorAction) {
+    fun performTextEditorAction(action: TextEditorAction) {
         // Implement based on action.action (e.g., "send", "done", "next")
-        // This might involve finding the appropriate UI element and performing a click
+        // Find the focused EditText and perform the appropriate action
+        val focusedNode = rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+        focusedNode?.let {
+            val imeAction = when (action.action.toLowerCase()) {
+                "send" -> EditorInfo.IME_ACTION_SEND
+                "done" -> EditorInfo.IME_ACTION_DONE
+                "next" -> EditorInfo.IME_ACTION_NEXT
+                else -> EditorInfo.IME_ACTION_UNSPECIFIED
+            }
+            // TODO: ...
+//            val arguments = Bundle().apply {
+//                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_IME_ACTION, imeAction)
+//            }
+//            it.performAction(AccessibilityNodeInfo.ACTION_IME_ACTION, arguments)
+        } ?: Log.e("AppAccessibilityService", "No focused input field found for TextEditorAction")
     }
 
     private fun findNodeByPath(path: List<Int>): AccessibilityNodeInfo? {

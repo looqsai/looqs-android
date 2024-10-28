@@ -29,7 +29,7 @@ class MoshiProvider @Inject constructor() {
                 .withSubtype(SwipeAction::class.java, ActionType.Swipe.serverName)
                 .withSubtype(ScrollAction::class.java, ActionType.Scroll.serverName)
                 .withSubtype(TextAction::class.java, ActionType.Text.serverName)
-                .withSubtype(TextEditorAction::class.java, ActionType.TextEditorAction.serverName),
+                .withSubtype(TextEditorAction::class.java, ActionType.TextEditor.serverName),
         )
         .add(
             PolymorphicJsonAdapterFactory.of(RequestContentBlock::class.java, "type")

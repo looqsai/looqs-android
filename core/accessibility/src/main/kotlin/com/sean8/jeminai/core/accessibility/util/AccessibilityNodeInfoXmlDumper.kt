@@ -77,6 +77,11 @@ object AccessibilityNodeInfoXmlDumper {
             serializer.attribute("", "text", text)
         }
 
+        val id = safeCharSeqToString(node.viewIdResourceName)
+        if (id.isNotEmpty()) {
+            serializer.attribute("", "id", id)
+        }
+
         val contentDesc = safeCharSeqToString(node.contentDescription)
         if (contentDesc.isNotEmpty()) {
             serializer.attribute("", "content-desc", contentDesc)
