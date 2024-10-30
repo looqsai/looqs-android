@@ -11,7 +11,6 @@ import com.sean8.jeminai.core.actions.Action.ScrollAction
 import com.sean8.jeminai.core.actions.Action.SwipeAction
 import com.sean8.jeminai.core.actions.Action.TapAction
 import com.sean8.jeminai.core.actions.Action.TextAction
-import com.sean8.jeminai.core.actions.Action.TextEditorAction
 import dagger.hilt.android.scopes.ServiceScoped
 import javax.inject.Inject
 
@@ -28,17 +27,17 @@ class AccessibilityServiceHelperImpl @Inject constructor(
         return accessibilityService?.defaultDisplay
     }
 
-    override fun performAction(action: Action) {
-        accessibilityService?.let { service ->
-            when (action) {
-                is TapAction -> service.performTapAction(action)
-                is LongClickAction -> service.performLongClickAction(action)
-                is SwipeAction -> service.performSwipeAction(action)
-                is ScrollAction -> service.performScrollAction(action)
-                is DeviceKeyAction -> service.performDeviceKeyAction(action)
-                is TextAction -> service.performTextAction(action)
-                is TextEditorAction -> service.performTextEditorAction(action)
-            }
+    override fun performAction(action: Action): Boolean {
+        val service = accessibilityService ?: return false
+
+        return when (action) {
+            is TapAction -> service.performTapAction(action)
+            is LongClickAction -> service.performLongClickAction(action)
+            is SwipeAction -> service.performSwipeAction(action)
+            is ScrollAction -> service.performScrollAction(action)
+            is DeviceKeyAction -> service.performDeviceKeyAction(action)
+            is TextAction -> service.performTextAction(action)
+            else -> false
         }
     }
 

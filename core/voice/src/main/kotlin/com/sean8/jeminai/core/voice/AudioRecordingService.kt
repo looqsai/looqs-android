@@ -8,6 +8,10 @@ import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.sean8.jeminai.core.voice.RecordingState.Error
+import com.sean8.jeminai.core.voice.RecordingState.Finished
+import com.sean8.jeminai.core.voice.RecordingState.Idle
+import com.sean8.jeminai.core.voice.RecordingState.Started
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,8 +32,13 @@ class AudioRecordingService : Service() {
     @Inject
     lateinit var voiceTransmitter: VoiceTransmitter
 
+    private lateinit var recorder: AudioRecorder
+
+    var outputFilePath: String? = null
+
     companion object {
         const val ACTION_START_RECORDING = "com.sean8.jeminai.ACTION_START_RECORDING"
+        const val ACTION_DISMISS_RECORDING = "com.sean8.jeminai.ACTION_DISMISS_RECORDING"
         const val EXTRA_RECORDING_DURATION = "extra_recording_duration"
         const val DEFAULT_RECORDING_DURATION = 10 // in seconds
         private const val NOTIFICATION_ID = 2
@@ -38,6 +47,7 @@ class AudioRecordingService : Service() {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service created")
+        recorder = audioRecorderFactory.createAudioRecorder()
         startForegroundService()
 
         Log.d(TAG, "VoiceTransmitter instance: $voiceTransmitter")
@@ -52,24 +62,47 @@ class AudioRecordingService : Service() {
 
     private suspend fun handleIntent(intent: Intent?) {
         when (intent?.action) {
+            // TODO: Fix spaghetti code here
             ACTION_START_RECORDING -> {
-                val duration =
-                    intent.getIntExtra(EXTRA_RECORDING_DURATION, DEFAULT_RECORDING_DURATION)
+                when (recorder.state.value) {
+                    is Started -> {
+                        Log.d(TAG, "Finishing an already started recording")
+                        recorder.apply {
+                            stopRecording()
+                            voiceTransmitter.postNewRecording(File(outputFilePath!!))
+                        }
+                    }
 
-                Log.d(TAG, "Starting recording for $duration seconds")
+                    is Error, Finished, Idle -> {
+                        val duration =
+                            intent.getIntExtra(EXTRA_RECORDING_DURATION, DEFAULT_RECORDING_DURATION)
 
-                // Use internal cache directory to store the recording
-                val outputFilePath =
-                    "${cacheDir.absolutePath}/recording_${System.currentTimeMillis()}.m4a"
-                Log.d(TAG, "Output file: $outputFilePath")
+                        Log.d(TAG, "Starting recording for $duration seconds")
 
-                audioRecorderFactory.createAudioRecorder().let { recorder ->
-                    recorder.startRecording(outputFilePath)
-                    delay(duration * 1000L)
-                    recorder.stopRecording()
+                        // Use internal cache directory to store the recording
+                        outputFilePath =
+                            "${cacheDir.absolutePath}/recording_${System.currentTimeMillis()}.m4a"
+                        Log.d(TAG, "Output file: $outputFilePath")
 
-                    voiceTransmitter.postNewRecording(File(outputFilePath))
+                        recorder.apply {
+                            startRecording(outputFilePath!!)
+                            delay(duration * 1000L)
+
+                            if (recorder.state.value == Started) {
+                                stopRecording()
+                                voiceTransmitter.postNewRecording(File(outputFilePath!!))
+                            }
+
+                        }
+                    }
                 }
+            }
+
+            ACTION_DISMISS_RECORDING -> {
+                Log.d(TAG, "Killing recording service")
+                recorder.stopRecording()
+
+                stopSelf()
             }
 
             else -> {

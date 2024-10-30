@@ -66,7 +66,7 @@ class ChatGPTService @Inject constructor(
             val assistantRequest = AssistantRequest(
                 instructions = assistantInstructions,
                 name = "VI Assistant",
-                model = "gpt-4o",
+                model = "gpt-4o-mini",
             )
 
             val requestBodyString = assistantRequestAdapter.toJson(assistantRequest)

@@ -1,5 +1,6 @@
 import subprocess
 import os
+import sys
 
 # Define full path to adb
 adb_path = f"/Users/{os.getenv('USER')}/Library/Android/sdk/platform-tools/adb"  # Path with user environment variable
@@ -34,6 +35,10 @@ def start_recording_service():
     print("Starting recording service...")
     run_adb_command("shell am startservice -a com.sean8.jeminai.ACTION_START_RECORDING")
 
+def go_home():
+    print("Going home...")
+    run_adb_command("shell input keyevent KEYCODE_HOME")
+
 # CLI menu interface
 def cli_menu():
     while True:
@@ -58,6 +63,7 @@ def cli_menu():
             print("Running full setup...")
             grant_permissions()
             enable_accessibility_service()
+            go_home()
         elif choice == 4:
             start_recording_service()
         elif choice == 5:
@@ -67,4 +73,28 @@ def cli_menu():
             print("Invalid choice. Please select a valid option.")
 
 if __name__ == "__main__":
-    cli_menu()
+    if len(sys.argv) > 1:
+        # Command-line argument(s) provided
+        try:
+            choice = int(sys.argv[1])
+        except ValueError:
+            print("Invalid input. Please enter a number between 1 and 5.")
+            sys.exit(1)
+
+        if choice == 1:
+            grant_permissions()
+        elif choice == 2:
+            enable_accessibility_service()
+        elif choice == 3:
+            print("Running full setup...")
+            grant_permissions()
+            enable_accessibility_service()
+            go_home()
+        elif choice == 4:
+            start_recording_service()
+        elif choice == 5:
+            print("Exiting...")
+        else:
+            print("Invalid choice. Please select a valid option.")
+    else:
+        cli_menu()

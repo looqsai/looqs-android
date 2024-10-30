@@ -7,7 +7,6 @@ import com.sean8.jeminai.core.actions.Action.ScrollAction
 import com.sean8.jeminai.core.actions.Action.SwipeAction
 import com.sean8.jeminai.core.actions.Action.TapAction
 import com.sean8.jeminai.core.actions.Action.TextAction
-import com.sean8.jeminai.core.actions.Action.TextEditorAction
 import com.sean8.jeminai.core.actions.ActionType
 import com.sean8.jeminai.core.llm.models.RequestContentBlock
 import com.sean8.jeminai.core.llm.models.ResponseContentBlock
@@ -29,7 +28,6 @@ class MoshiProvider @Inject constructor() {
                 .withSubtype(SwipeAction::class.java, ActionType.Swipe.serverName)
                 .withSubtype(ScrollAction::class.java, ActionType.Scroll.serverName)
                 .withSubtype(TextAction::class.java, ActionType.Text.serverName)
-                .withSubtype(TextEditorAction::class.java, ActionType.TextEditor.serverName),
         )
         .add(
             PolymorphicJsonAdapterFactory.of(RequestContentBlock::class.java, "type")

@@ -35,7 +35,9 @@ class ChatGPTTextToSpeechService @Inject constructor(
                 {
                     "model": "tts-1",
                     "input": "$text",
-                    "voice": "alloy"
+                    "voice": "alloy",
+                    "response_format": "aac",
+                    "speed": "1.05"
                 }
             """.trimIndent()
 
@@ -68,7 +70,7 @@ class ChatGPTTextToSpeechService @Inject constructor(
     private fun playAudio(audioBytes: ByteArray) {
         try {
             // Create a temporary file to store the audio
-            val tempFile = File.createTempFile("tts_audio", ".mp3", context.cacheDir)
+            val tempFile = File.createTempFile("tts_audio", ".aac", context.cacheDir)
             tempFile.writeBytes(audioBytes)
 
             val mediaPlayer = MediaPlayer()

@@ -29,6 +29,7 @@ include(":core:util")
 include(":core:actions")
 include(":core:screenshot")
 include(":core:orchestrator")
+include(":core:reflector")
 
 include(":feature:settings")
 include(":feature:setup")

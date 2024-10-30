@@ -6,13 +6,6 @@ plugins {
 
 android {
     namespace = "com.sean8.jeminai.core.orchestrator"
-
-//    // Ensure that assets are included
-//    sourceSets {
-//        getByName("main") {
-//            assets.srcDirs("src/main/res/assets")
-//        }
-//    }
 }
 
 dependencies {
@@ -24,4 +17,5 @@ dependencies {
     implementation(projects.core.voice)
     implementation(projects.core.llm)
     implementation(projects.core.screenshot)
+    implementation(projects.core.reflector)
 }

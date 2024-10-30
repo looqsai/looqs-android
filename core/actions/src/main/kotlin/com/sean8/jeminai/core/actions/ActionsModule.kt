@@ -5,8 +5,6 @@ import com.sean8.jeminai.core.actions.ActionType.LongClick
 import com.sean8.jeminai.core.actions.ActionType.Scroll
 import com.sean8.jeminai.core.actions.ActionType.Swipe
 import com.sean8.jeminai.core.actions.ActionType.Tap
-import com.sean8.jeminai.core.actions.ActionType.Text
-import com.sean8.jeminai.core.actions.ActionType.TextEditor
 import com.squareup.moshi.JsonClass
 
 // Enum for action types
@@ -17,7 +15,6 @@ enum class ActionType(val serverName: String) {
     Swipe("swipe"),
     Scroll("scroll"),
     Text("text"),
-    TextEditor("keyboard-special-keys")
 }
 
 // Base action class
@@ -64,15 +61,10 @@ sealed class Action {
 
     @JsonClass(generateAdapter = true)
     data class TextAction(
-        override val type: String = Text.serverName,
-        val pathToElement: List<Int>,
+        override val type: String = ActionType.Text.serverName,
+        val x: Float,
+        val y: Float,
         val text: String,
-    ) : Action()
-
-    @JsonClass(generateAdapter = true)
-    data class TextEditorAction(
-        override val type: String = TextEditor.serverName,
-        val action: String,
     ) : Action()
 
     @JsonClass(generateAdapter = true)

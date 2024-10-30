@@ -7,5 +7,5 @@ import com.sean8.jeminai.core.actions.Action
 interface AccessibilityServiceHelper {
     fun getRootNode(): AccessibilityNodeInfo?
     fun getDefaultDisplay(): Display?
-    fun performAction(action: Action)
+    fun performAction(action: Action): Boolean
 }

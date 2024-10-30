@@ -23,24 +23,28 @@ import com.sean8.jeminai.core.actions.Action
 import com.sean8.jeminai.core.data.repository.UserDataRepository
 import com.sean8.jeminai.core.llm.LLMService
 import com.sean8.jeminai.core.llm.PromptConstants.ECHO_REQUEST
+import com.sean8.jeminai.core.llm.PromptConstants.formatCommand
 import com.sean8.jeminai.core.llm.TextToSpeechService
 import com.sean8.jeminai.core.llm.models.LLMResponse
+import com.sean8.jeminai.core.reflector.MessageType
+import com.sean8.jeminai.core.reflector.MessageType.AI
+import com.sean8.jeminai.core.reflector.MessageType.STOP_TYPING
+import com.sean8.jeminai.core.reflector.MessageType.TYPING
+import com.sean8.jeminai.core.reflector.MessageType.USER
+import com.sean8.jeminai.core.reflector.Metadata
+import com.sean8.jeminai.core.reflector.ReflectorController
+import com.sean8.jeminai.core.reflector.ReflectorMessage
 import com.sean8.jeminai.core.screenshot.ProjectedScreenshotExtractor
 import com.sean8.jeminai.core.screenshot.ProjectionState
+import com.sean8.jeminai.core.voice.AudioRecordingService
 import com.sean8.jeminai.core.voice.VoiceTransmitter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
@@ -74,6 +78,9 @@ class OrchestratorService : Service() {
     @Inject
     lateinit var userDataRepository: UserDataRepository
 
+    @Inject
+    lateinit var reflectorController: ReflectorController
+
     private lateinit var accessibilityHelper: AccessibilityServiceHelper
 
     private var echoAttempts = 0
@@ -87,12 +94,6 @@ class OrchestratorService : Service() {
 
     private var assistantId: String? = null
     private var threadId: String? = null
-
-    // Add OkHttpClient instance
-    private val httpClient = OkHttpClient()
-
-    // Add your server's URL (replace with your Mac's IP address)
-    private val pythonServerUrl = "http://192.168.1.233:1050/upload_image"
 
     // Define constants for the action and extra key
     companion object {
@@ -120,6 +121,28 @@ class OrchestratorService : Service() {
             )
         }
 
+        // Connect to the WebSocket server
+        val reflectorWsHost = "ws://indirectly-closing-airedale.ngrok-free.app"
+        reflectorController.connect(reflectorWsHost)
+
+        // Handle incoming messages
+        // TODO: is mapLatest the correct function to call?
+        scope.launch {
+            reflectorController.incomingMessages.mapLatest { message ->
+                when (message.type) {
+                    USER -> {
+                        // Handle incoming user message
+                        scope.launch {
+                            captureAndSendData(message.content)
+                        }
+                    }
+
+                    AI -> Log.d(TAG, "Received AI message: ${message.content}")
+                    TYPING, STOP_TYPING -> Log.v(TAG, "Received $message message")
+                }
+            }
+        }
+
         // Start collecting voice inputs and media projections
         scope.launch {
             collectVoiceInputs()
@@ -135,8 +158,12 @@ class OrchestratorService : Service() {
                 val demoVoiceInputText = intent.getStringExtra(EXTRA_DEMO_VOICE_INPUT_TEXT)
                 if (!demoVoiceInputText.isNullOrEmpty()) {
                     Log.d(TAG, "Received demo voice input text: $demoVoiceInputText")
+                    val stopAudioIntent = Intent(this, AudioRecordingService::class.java).apply {
+                        this.action = AudioRecordingService.ACTION_DISMISS_RECORDING
+                    }
                     // Process the injected voice input text as if it was transcribed from voice
                     scope.launch {
+                        startService(stopAudioIntent)
                         captureAndSendData(userMessage = demoVoiceInputText)
                     }
                 } else {
@@ -152,7 +179,6 @@ class OrchestratorService : Service() {
         val userData = userDataRepository.userData.first()
         assistantId = userData.assistantId
         threadId = userData.threadId
-
 
         if (true) {
             Log.w(TAG, "SKIPPING PERSISTENT ASSISTANT AND THREADS FOR TEMP DEBUG PURPOSES ")
@@ -216,6 +242,7 @@ class OrchestratorService : Service() {
         super.onDestroy()
         scope.cancel()
         screenshotExtractor.stop()
+        reflectorController.disconnect()
         Log.d(TAG, "OrchestratorService destroyed")
     }
 
@@ -281,8 +308,6 @@ class OrchestratorService : Service() {
                 outputStream.flush()
                 outputStream.close()
                 Log.d(TAG, "Screenshot captured and saved to file: ${screenshotFile.absolutePath}")
-
-                uploadImageToPythonServer(screenshotFile)
             } catch (e: Exception) {
                 Log.e(TAG, "Error saving screenshot to file", e)
                 screenshotFile = null
@@ -293,10 +318,20 @@ class OrchestratorService : Service() {
 
         Log.d(TAG, "User message to LLM: \"$userMessage\"")
 
+        // Send user message to WebSocket
+        reflectorController.sendMessage(
+            ReflectorMessage(
+                type = MessageType.USER,
+                content = userMessage,
+            ),
+        )
+
+        // Send typing indicator (LLM is processing)
+        sendTypingIndicator(isTyping = true)
+
         // Combine the general prompt with the user message and XRAY data
         val prompt =
             "User Input: \"$userMessage\"\n\n" +
-//                "Latest events: $events\n\n" + //TODO: Events...
                 "XRAY: $xrayData"
 
         // Send message to LLM with image
@@ -310,13 +345,17 @@ class OrchestratorService : Service() {
             Log.v(TAG, "LLM Response: $llmResponse")
 
             if (llmResponse != null) {
-                processLLMResponse(llmResponse)
+                val processSucceeded = processLLMResponse(llmResponse)
+
+                // There's an issue with the LLM response sometimes returning requiresFurtherAction True, but no actual actions.
+                // So proceed with actual actions if they exist
+                val actuallyRequiresFurtherActions = llmResponse.actions.isNotEmpty()
+
                 // Check if more actions are needed
-                if (llmResponse.requiresFurtherAction && echoAttempts < maxEchoAttempts) {
+                if ((!processSucceeded || actuallyRequiresFurtherActions) && echoAttempts < maxEchoAttempts) {
                     echoAttempts++
                     Log.d(TAG, "Requires further action, echo attempt $echoAttempts")
-                    // Trigger echo without new user input
-                    captureAndSendData(ECHO_REQUEST)
+                    captureAndSendData(formatCommand(ECHO_REQUEST))
                 } else {
                     echoAttempts = 0 // Reset for next user request
                     Log.d(TAG, "No further action required or max echo attempts reached")
@@ -334,56 +373,48 @@ class OrchestratorService : Service() {
         }
     }
 
-    private suspend fun uploadImageToPythonServer(imageFile: File) {
-        withContext(Dispatchers.IO) {
-            try {
-                val mediaType = "image/jpeg".toMediaTypeOrNull()
-                val requestBody = MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart(
-                        "image",
-                        imageFile.name,
-                        imageFile.asRequestBody(mediaType),
-                    )
-                    .build()
-
-                val request = Request.Builder()
-                    .url(pythonServerUrl)
-                    .post(requestBody)
-                    .build()
-
-                val response = httpClient.newCall(request).execute()
-                if (response.isSuccessful) {
-                    Log.d(TAG, "Image uploaded to Python server successfully")
-                } else {
-                    Log.e(TAG, "Failed to upload image to Python server: ${response.code}")
-                }
-                response.close()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error uploading image to Python server", e)
-            }
-        }
-    }
-
-    private suspend fun processLLMResponse(llmResponse: LLMResponse) {
+    private suspend fun processLLMResponse(llmResponse: LLMResponse): Boolean {
         Log.d(TAG, "Processing LLM Response")
+
+        // Stop typing indicator
+        sendTypingIndicator(isTyping = false)
+
         llmResponse.spoken?.let { spoken ->
             if (spoken.lowercase() != "none") {
-                // Handle spoken response using TextToSpeechService
+                // Handle spoken response
                 Log.d(TAG, "Spoken: $spoken")
                 scope.launch {
                     textToSpeechService.speak(spoken)
                 }
+
+                // Send AI response to WebSocket
+                reflectorController.sendMessage(
+                    ReflectorMessage(
+                        type = MessageType.AI,
+                        content = spoken,
+                        metadata = Metadata(
+                            actions = llmResponse.actions.map { it.type },
+                            requiresAdditional = llmResponse.requiresFurtherAction,
+                            model = llmResponse.toString(), // TODO: Entire response from llm as JSON
+                            imageId = null, // TODO: add if image was sent
+                        ),
+                    ),
+                )
             }
         }
 
+
         llmResponse.actions?.forEach { action: Action ->
             Log.d(TAG, "Performing action: $action")
-            accessibilityHelper.performAction(action)
+            if (!accessibilityHelper.performAction(action)) {
+                return false
+            }
 
             // TODO: Make this delay reactive on the state of events coming from accessibility
             delay(1_500)
         }
+
+        return true
     }
 
     private suspend fun resetAssistantAndThread() {
@@ -394,6 +425,17 @@ class OrchestratorService : Service() {
         userDataRepository.setThreadId("")
         // Re-initialize assistant and thread
         initializeAssistantAndThread()
+    }
+
+    private fun sendTypingIndicator(isTyping: Boolean) {
+        val messageType = if (isTyping) MessageType.TYPING else MessageType.STOP_TYPING
+        reflectorController.sendMessage(
+            ReflectorMessage(
+                type = messageType,
+                content = "",
+                metadata = null,
+            ),
+        )
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

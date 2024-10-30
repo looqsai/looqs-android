@@ -6,29 +6,28 @@ import android.accessibilityservice.GestureDescription
 import android.content.Context
 import android.content.Intent
 import android.graphics.Path
+import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
-import android.view.KeyEvent
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityManager
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
-import android.view.inputmethod.EditorInfo
+import android.widget.EditText
 import androidx.core.view.accessibility.AccessibilityEventCompat.TYPE_WINDOWS_CHANGED
 import androidx.core.view.accessibility.AccessibilityEventCompat.TYPE_WINDOW_CONTENT_CHANGED
 import com.sean8.jeminai.core.accessibility.util.AccessibilityNodeInfoXmlDumper
 import com.sean8.jeminai.core.accessibility.util.TreeNode
 import com.sean8.jeminai.core.accessibility.util.defaultDisplay
 import com.sean8.jeminai.core.accessibility.util.populateChildren
+import com.sean8.jeminai.core.actions.Action
 import com.sean8.jeminai.core.actions.Action.DeviceKeyAction
 import com.sean8.jeminai.core.actions.Action.LongClickAction
 import com.sean8.jeminai.core.actions.Action.Point
 import com.sean8.jeminai.core.actions.Action.ScrollAction
 import com.sean8.jeminai.core.actions.Action.SwipeAction
 import com.sean8.jeminai.core.actions.Action.TapAction
-import com.sean8.jeminai.core.actions.Action.TextAction
-import com.sean8.jeminai.core.actions.Action.TextEditorAction
 import com.sean8.jeminai.core.util.getBoundsInScreen
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -167,39 +166,37 @@ class AppAccessibilityService : AccessibilityService() {
         return "Timeout while trying to launch package $packageName"
     }
 
-    fun performTapAction(action: TapAction) {
+    fun performTapAction(action: TapAction): Boolean {
         val path = Path().apply {
             moveTo(action.x, action.y)
         }
         val gesture = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, 100))
             .build()
-        dispatchGesture(gesture, null, null)
+        return dispatchGesture(gesture, null, null)
     }
 
-    fun performLongClickAction(action: LongClickAction) {
+    fun performLongClickAction(action: LongClickAction): Boolean {
         val path = Path().apply {
             moveTo(action.x, action.y)
         }
         val gesture = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, 1000))
             .build()
-        dispatchGesture(gesture, null, null)
+        return dispatchGesture(gesture, null, null)
     }
 
-    fun performSwipeAction(action: SwipeAction) {
+    fun performSwipeAction(action: SwipeAction) =
         performGestureAction(action.start, action.end, action.swipeDuration)
-    }
 
-    fun performScrollAction(action: ScrollAction) {
+    fun performScrollAction(action: ScrollAction) =
         performGestureAction(action.start, action.end, action.swipeDuration)
-    }
 
     private fun performGestureAction(
         start: Point,
         end: Point,
         duration: Long,
-    ) {
+    ): Boolean {
         val path = Path().apply {
             moveTo(start.x, start.y)
             lineTo(end.x, end.y)
@@ -213,59 +210,68 @@ class AppAccessibilityService : AccessibilityService() {
                 ),
             )
             .build()
-        dispatchGesture(gesture, null, null)
+        return dispatchGesture(gesture, null, null)
     }
 
-    fun performDeviceKeyAction(action: DeviceKeyAction) {
-        val result = when (action.serverAction) {
-            KeyEvent.KEYCODE_BACK -> performGlobalAction(GLOBAL_ACTION_BACK)
-            KeyEvent.KEYCODE_HOME -> performGlobalAction(GLOBAL_ACTION_HOME)
-            KeyEvent.KEYCODE_APP_SWITCH -> performGlobalAction(GLOBAL_ACTION_RECENTS)
-            else -> false
-        }
-        if (!result) {
-            Log.e("AppAccessibilityService", "Failed to perform device key action")
-        }
+    fun performDeviceKeyAction(action: DeviceKeyAction): Boolean {
+        return performGlobalAction(action.serverAction)
     }
 
-    fun performTextAction(action: TextAction) {
-        val node = findNodeByPath(action.pathToElement)
-        node?.let {
-            val arguments = Bundle().apply {
-                putCharSequence(
-                    AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
-                    action.text,
-                )
+    fun performTextAction(action: Action.TextAction): Boolean {
+        val node = findNodeAtPosition(action.x.toInt(), action.y.toInt())
+        if (node != null) {
+            if (node.isEditable) {
+                val arguments = Bundle().apply {
+                    putCharSequence(
+                        AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                        action.text,
+                    )
+                }
+                val success = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
+                if (!success) {
+                    Log.e(TAG, "Failed to set text on node at (${action.x}, ${action.y})")
+                    return false
+                }
+            } else {
+                Log.e(TAG, "Node at (${action.x}, ${action.y}) is not editable")
+                return false
             }
-            it.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
-        } ?: Log.e("AppAccessibilityService", "Failed to find node for text action")
-    }
-
-    fun performTextEditorAction(action: TextEditorAction) {
-        // Implement based on action.action (e.g., "send", "done", "next")
-        // Find the focused EditText and perform the appropriate action
-        val focusedNode = rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
-        focusedNode?.let {
-            val imeAction = when (action.action.toLowerCase()) {
-                "send" -> EditorInfo.IME_ACTION_SEND
-                "done" -> EditorInfo.IME_ACTION_DONE
-                "next" -> EditorInfo.IME_ACTION_NEXT
-                else -> EditorInfo.IME_ACTION_UNSPECIFIED
-            }
-            // TODO: ...
-//            val arguments = Bundle().apply {
-//                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_IME_ACTION, imeAction)
-//            }
-//            it.performAction(AccessibilityNodeInfo.ACTION_IME_ACTION, arguments)
-        } ?: Log.e("AppAccessibilityService", "No focused input field found for TextEditorAction")
-    }
-
-    private fun findNodeByPath(path: List<Int>): AccessibilityNodeInfo? {
-        var currentNode = rootInActiveWindow
-        for (index in path) {
-            currentNode = currentNode?.getChild(index)
+        } else {
+            Log.e(TAG, "No node found at (${action.x}, ${action.y})")
+            return false
         }
-        return currentNode
+        return true
+    }
+
+    private fun findNodeAtPosition(x: Int, y: Int): AccessibilityNodeInfo? {
+        val rootNode = rootInActiveWindow ?: return null
+        return findNodeAtPositionRecursive(rootNode, x, y)
+    }
+
+    private fun findNodeAtPositionRecursive(
+        node: AccessibilityNodeInfo,
+        x: Int,
+        y: Int,
+    ): AccessibilityNodeInfo? {
+        val nodeBounds = Rect()
+        node.getBoundsInScreen(nodeBounds)
+        if (nodeBounds.contains(x, y)) {
+            // Check if the node is an EditText or is editable
+            if (node.className == EditText::class.java.name || node.isEditable) {
+                return node
+            }
+            // Recursively check children
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i)
+                if (child != null) {
+                    val result = findNodeAtPositionRecursive(child, x, y)
+                    if (result != null) {
+                        return result
+                    }
+                }
+            }
+        }
+        return null
     }
 
     companion object {
