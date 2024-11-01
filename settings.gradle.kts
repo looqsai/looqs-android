@@ -33,5 +33,6 @@ include(":core:reflector")
 
 include(":feature:settings")
 include(":feature:setup")
+include(":feature:trigger")
 
 include(":app")

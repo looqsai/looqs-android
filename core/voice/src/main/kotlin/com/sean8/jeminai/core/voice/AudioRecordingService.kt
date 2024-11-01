@@ -8,6 +8,9 @@ import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.sean8.jeminai.core.reflector.MessageType
+import com.sean8.jeminai.core.reflector.ReflectorController
+import com.sean8.jeminai.core.reflector.ReflectorMessage
 import com.sean8.jeminai.core.voice.RecordingState.Error
 import com.sean8.jeminai.core.voice.RecordingState.Finished
 import com.sean8.jeminai.core.voice.RecordingState.Idle
@@ -32,6 +35,9 @@ class AudioRecordingService : Service() {
     @Inject
     lateinit var voiceTransmitter: VoiceTransmitter
 
+    @Inject
+    lateinit var reflectorController: ReflectorController
+
     private lateinit var recorder: AudioRecorder
 
     var outputFilePath: String? = null
@@ -40,7 +46,7 @@ class AudioRecordingService : Service() {
         const val ACTION_START_RECORDING = "com.sean8.jeminai.ACTION_START_RECORDING"
         const val ACTION_DISMISS_RECORDING = "com.sean8.jeminai.ACTION_DISMISS_RECORDING"
         const val EXTRA_RECORDING_DURATION = "extra_recording_duration"
-        const val DEFAULT_RECORDING_DURATION = 10 // in seconds
+        const val DEFAULT_RECORDING_DURATION = 5 // in seconds
         private const val NOTIFICATION_ID = 2
     }
 
@@ -59,56 +65,67 @@ class AudioRecordingService : Service() {
         }
         return START_NOT_STICKY
     }
-
     private suspend fun handleIntent(intent: Intent?) {
         when (intent?.action) {
-            // TODO: Fix spaghetti code here
-            ACTION_START_RECORDING -> {
-                when (recorder.state.value) {
-                    is Started -> {
-                        Log.d(TAG, "Finishing an already started recording")
-                        recorder.apply {
-                            stopRecording()
-                            voiceTransmitter.postNewRecording(File(outputFilePath!!))
-                        }
-                    }
+            ACTION_START_RECORDING -> handleStartRecording(intent)
+            ACTION_DISMISS_RECORDING -> handleDismissRecording()
+            else -> Log.d(TAG, "Unknown action received")
+        }
+    }
 
-                    is Error, Finished, Idle -> {
-                        val duration =
-                            intent.getIntExtra(EXTRA_RECORDING_DURATION, DEFAULT_RECORDING_DURATION)
-
-                        Log.d(TAG, "Starting recording for $duration seconds")
-
-                        // Use internal cache directory to store the recording
-                        outputFilePath =
-                            "${cacheDir.absolutePath}/recording_${System.currentTimeMillis()}.m4a"
-                        Log.d(TAG, "Output file: $outputFilePath")
-
-                        recorder.apply {
-                            startRecording(outputFilePath!!)
-                            delay(duration * 1000L)
-
-                            if (recorder.state.value == Started) {
-                                stopRecording()
-                                voiceTransmitter.postNewRecording(File(outputFilePath!!))
-                            }
-
-                        }
-                    }
-                }
+    private suspend fun handleStartRecording(intent: Intent) {
+        when (recorder.state.value) {
+            is Started -> {
+                Log.d(TAG, "Finishing an already started recording")
+                stopAndPostRecording()
             }
+            is Error, Finished, Idle -> {
+                val duration = intent.getIntExtra(EXTRA_RECORDING_DURATION, DEFAULT_RECORDING_DURATION)
 
-            ACTION_DISMISS_RECORDING -> {
-                Log.d(TAG, "Killing recording service")
-                recorder.stopRecording()
+                Log.d(TAG, "Starting recording for $duration seconds")
 
-                stopSelf()
-            }
+                // Use internal cache directory to store the recording
+                outputFilePath = "${cacheDir.absolutePath}/recording_${System.currentTimeMillis()}.m4a"
+                Log.d(TAG, "Output file: $outputFilePath")
 
-            else -> {
-                Log.d(TAG, "Unknown action received")
+                startRecording(duration)
             }
         }
+    }
+
+    private fun handleDismissRecording() {
+        Log.d(TAG, "Stopping recording service")
+        recorder.stopRecording()
+        sendRecordingStatusToWebSocket(started = false)
+        stopSelf()
+    }
+
+    private suspend fun startRecording(duration: Int) {
+        recorder.startRecording(outputFilePath!!)
+        sendRecordingStatusToWebSocket(started = true)
+
+        delay(duration * 1000L)
+
+        if (recorder.state.value == Started) {
+            stopAndPostRecording()
+        }
+    }
+
+    private fun stopAndPostRecording() {
+        recorder.stopRecording()
+        sendRecordingStatusToWebSocket(started = false)
+        voiceTransmitter.postNewRecording(File(outputFilePath!!))
+    }
+
+    private fun sendRecordingStatusToWebSocket(started: Boolean) {
+        val messageType = if (started) MessageType.VOICE_RECORDING_START else MessageType.VOICE_RECORDING_STOP
+        reflectorController.sendMessage(
+            ReflectorMessage(
+                type = messageType,
+                content = "",
+                isVisible = true
+            )
+        )
     }
 
     override fun onDestroy() {

@@ -1,0 +1,14 @@
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut xmlns:android="http://schemas.android.com/apk/res/android"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_dialog_info"
+        android:shortcutId="trigger_recording"
+        android:shortcutLongLabel="@string/shortcut_start_recording"
+        android:shortcutShortLabel="@string/shortcut_start_recording">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.sean8.jeminai.feature.trigger.TriggerActivity"
+            android:targetPackage="com.sean8.jeminai" />
+    </shortcut>
+</shortcuts>

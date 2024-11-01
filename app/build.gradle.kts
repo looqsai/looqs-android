@@ -33,6 +33,7 @@ android {
 dependencies {
     implementation(projects.feature.settings)
     implementation(projects.feature.setup)
+    implementation(projects.feature.trigger)
     implementation(projects.core.testing)
     implementation(projects.core.orchestrator)
 

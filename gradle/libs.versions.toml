@@ -40,6 +40,7 @@ junitVersion = "1.2.1"
 material = "1.12.0"
 okio = "3.0.0"
 mockitoVersion = "5.14.1"
+activity = "1.9.3"
 
 [bundles]
 androidx-compose-ui-test = ["androidx-ui-test-manifest", "androidx-ui-test-junit4"]
@@ -123,6 +124,7 @@ androidx-foundation-android = { group = "androidx.compose.foundation", name = "f
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -28,8 +28,6 @@ import com.sean8.jeminai.core.llm.TextToSpeechService
 import com.sean8.jeminai.core.llm.models.LLMResponse
 import com.sean8.jeminai.core.reflector.MessageType
 import com.sean8.jeminai.core.reflector.MessageType.AI
-import com.sean8.jeminai.core.reflector.MessageType.STOP_TYPING
-import com.sean8.jeminai.core.reflector.MessageType.TYPING
 import com.sean8.jeminai.core.reflector.MessageType.USER
 import com.sean8.jeminai.core.reflector.Metadata
 import com.sean8.jeminai.core.reflector.ReflectorController
@@ -43,7 +41,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
@@ -128,17 +125,17 @@ class OrchestratorService : Service() {
         // Handle incoming messages
         // TODO: is mapLatest the correct function to call?
         scope.launch {
-            reflectorController.incomingMessages.mapLatest { message ->
+            reflectorController.incomingMessages.collect { message ->
                 when (message.type) {
                     USER -> {
-                        // Handle incoming user message
-                        scope.launch {
-                            captureAndSendData(message.content)
+                        if (!message.content.isNullOrEmpty()) {
+                            captureAndSendData(message.content!!, false)
+                        } else {
+                            Log.e(TAG, "Received USER message with blank message")
                         }
                     }
-
                     AI -> Log.d(TAG, "Received AI message: ${message.content}")
-                    TYPING, STOP_TYPING -> Log.v(TAG, "Received $message message")
+                    else -> Log.v(TAG, "Received $message message")
                 }
             }
         }
@@ -275,7 +272,7 @@ class OrchestratorService : Service() {
         }
     }
 
-    private suspend fun captureAndSendData(userMessage: String) {
+    private suspend fun captureAndSendData(userMessage: String, isVisible: Boolean = true) {
         Log.d(TAG, "Capturing data before sending to LLM")
         val rootNode = accessibilityHelper.getRootNode()
         if (rootNode == null) {
@@ -323,6 +320,7 @@ class OrchestratorService : Service() {
             ReflectorMessage(
                 type = MessageType.USER,
                 content = userMessage,
+                isVisible = isVisible
             ),
         )
 
@@ -355,7 +353,7 @@ class OrchestratorService : Service() {
                 if ((!processSucceeded || actuallyRequiresFurtherActions) && echoAttempts < maxEchoAttempts) {
                     echoAttempts++
                     Log.d(TAG, "Requires further action, echo attempt $echoAttempts")
-                    captureAndSendData(formatCommand(ECHO_REQUEST))
+                    captureAndSendData(formatCommand(ECHO_REQUEST), false)
                 } else {
                     echoAttempts = 0 // Reset for next user request
                     Log.d(TAG, "No further action required or max echo attempts reached")

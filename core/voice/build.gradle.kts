@@ -11,6 +11,7 @@ android {
 dependencies {
     implementation(libs.hilt.coroutines)
     implementation(libs.hilt.android.testing)
+    implementation(projects.core.reflector)
 
     testImplementation(libs.mockito.core)
 }
