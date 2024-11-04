@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -65,6 +66,7 @@ class AudioRecordingService : Service() {
         }
         return START_NOT_STICKY
     }
+
     private suspend fun handleIntent(intent: Intent?) {
         when (intent?.action) {
             ACTION_START_RECORDING -> handleStartRecording(intent)
@@ -79,18 +81,32 @@ class AudioRecordingService : Service() {
                 Log.d(TAG, "Finishing an already started recording")
                 stopAndPostRecording()
             }
+
             is Error, Finished, Idle -> {
-                val duration = intent.getIntExtra(EXTRA_RECORDING_DURATION, DEFAULT_RECORDING_DURATION)
+                val duration =
+                    intent.getIntExtra(EXTRA_RECORDING_DURATION, DEFAULT_RECORDING_DURATION)
 
                 Log.d(TAG, "Starting recording for $duration seconds")
 
                 // Use internal cache directory to store the recording
-                outputFilePath = "${cacheDir.absolutePath}/recording_${System.currentTimeMillis()}.m4a"
+                outputFilePath =
+                    "${cacheDir.absolutePath}/recording_${System.currentTimeMillis()}.m4a"
                 Log.d(TAG, "Output file: $outputFilePath")
+
+                playStartingSound()
 
                 startRecording(duration)
             }
         }
+    }
+
+    private fun playStartingSound() {
+        val mediaPlayer =
+            MediaPlayer.create(this, R.raw.core_voice_chime_free_royalty_pixabay_click_effect)
+        mediaPlayer.setOnCompletionListener { mp ->
+            mp.release()
+        }
+        mediaPlayer.start()
     }
 
     private fun handleDismissRecording() {
@@ -118,13 +134,14 @@ class AudioRecordingService : Service() {
     }
 
     private fun sendRecordingStatusToWebSocket(started: Boolean) {
-        val messageType = if (started) MessageType.VOICE_RECORDING_START else MessageType.VOICE_RECORDING_STOP
+        val messageType =
+            if (started) MessageType.VOICE_RECORDING_START else MessageType.VOICE_RECORDING_STOP
         reflectorController.sendMessage(
             ReflectorMessage(
                 type = messageType,
                 content = "",
-                isVisible = true
-            )
+                isVisible = true,
+            ),
         )
     }
 
