@@ -1,4 +1,4 @@
-package com.sean8.jeminai.ui.theme
+package ai.looqs.android.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

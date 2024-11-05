@@ -6,9 +6,9 @@ import sys
 adb_path = f"/Users/{os.getenv('USER')}/Library/Android/sdk/platform-tools/adb"  # Path with user environment variable
 
 # Define package name and service paths
-package_name = "com.sean8.jeminai"
-voice_interaction_service = f"{package_name}/com.sean8.jeminai.core.voice.MyVoiceInteractionService"
-accessibility_service = f"{package_name}/com.sean8.jeminai.core.accessibility.AppAccessibilityService"
+package_name = "ai.looqs.android"
+voice_interaction_service = f"{package_name}/ai.looqs.android.core.voice.MyVoiceInteractionService"
+accessibility_service = f"{package_name}/ai.looqs.android.core.accessibility.AppAccessibilityService"
 
 # Helper function to run adb commands with the full adb path
 def run_adb_command(command):
@@ -33,7 +33,7 @@ def enable_accessibility_service():
 # Start recording service using adb
 def start_recording_service():
     print("Starting recording service...")
-    run_adb_command("shell am startservice -a com.sean8.jeminai.ACTION_START_RECORDING")
+    run_adb_command("shell am startservice -a ai.looqs.android.ACTION_START_RECORDING")
 
 def go_home():
     print("Going home...")

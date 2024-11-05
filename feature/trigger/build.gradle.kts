@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.sean8.jeminai.feature.trigger"
+    namespace = "ai.looqs.android.feature.trigger"
 }
 
 dependencies {

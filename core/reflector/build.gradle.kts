@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.sean8.jeminai.core.reflector"
+    namespace = "ai.looqs.android.core.reflector"
 }
 
 dependencies {

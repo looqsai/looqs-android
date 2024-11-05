@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.sean8.jeminai.core.data"
+    namespace = "ai.looqs.android.core.data"
     testOptions {
         unitTests {
             isIncludeAndroidResources = true

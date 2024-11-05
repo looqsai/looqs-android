@@ -1,4 +1,4 @@
-package com.sean8.jeminai
+package ai.looqs.android
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,13 +13,13 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle.State.STARTED
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.sean8.jeminai.MainActivityUiState.Loading
-import com.sean8.jeminai.MainActivityUiState.Success
-import com.sean8.jeminai.core.model.DarkThemeConfig.DARK
-import com.sean8.jeminai.core.model.DarkThemeConfig.FOLLOW_SYSTEM
-import com.sean8.jeminai.core.model.DarkThemeConfig.LIGHT
-import com.sean8.jeminai.feature.setup.SetupScreen
-import com.sean8.jeminai.ui.theme.AppTheme
+import ai.looqs.android.MainActivityUiState.Loading
+import ai.looqs.android.MainActivityUiState.Success
+import ai.looqs.android.core.model.DarkThemeConfig.DARK
+import ai.looqs.android.core.model.DarkThemeConfig.FOLLOW_SYSTEM
+import ai.looqs.android.core.model.DarkThemeConfig.LIGHT
+import ai.looqs.android.feature.setup.SetupScreen
+import ai.looqs.android.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach

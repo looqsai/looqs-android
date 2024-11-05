@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.sean8.jeminai.core.actions"
+    namespace = "ai.looqs.android.core.actions"
 }
 
 dependencies {

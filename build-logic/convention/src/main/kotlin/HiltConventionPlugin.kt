@@ -1,6 +1,6 @@
 
 import com.android.build.gradle.api.AndroidBasePlugin
-import com.sean8.jeminai.libs
+import ai.looqs.android.libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.dependencies

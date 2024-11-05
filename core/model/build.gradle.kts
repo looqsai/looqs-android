@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.sean8.jeminai.core.model"
+    namespace = "ai.looqs.android.core.model"
 }
 dependencies {
     api(libs.kotlinx.datetime)

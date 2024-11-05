@@ -1,10 +1,10 @@
-package com.sean8.jeminai.ui.theme
+package ai.looqs.android.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.text.googlefonts.GoogleFont
-import com.sean8.jeminai.R
+import ai.looqs.android.R
 
 val provider = GoogleFont.Provider(
     providerAuthority = "com.google.android.gms.fonts",

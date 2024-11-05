@@ -8,7 +8,7 @@
         android:shortcutShortLabel="@string/shortcut_start_recording">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetClass="com.sean8.jeminai.feature.trigger.TriggerActivity"
-            android:targetPackage="com.sean8.jeminai" />
+            android:targetClass="ai.looqs.android.feature.trigger.TriggerActivity"
+            android:targetPackage="ai.looqs.android" />
     </shortcut>
 </shortcuts>

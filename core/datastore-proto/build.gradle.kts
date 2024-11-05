@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.google.samples.apps.nowinandroid.core.datastore.proto"
+    namespace = "ai.looqs.android.core.datastore.proto"
 }
 
 // Setup protobuf configuration, generating lite Java and Kotlin classes
@@ -26,13 +26,6 @@ protobuf {
     }
 }
 
-//androidComponents.beforeVariants {
-//    android.sourceSets.register(it.name) {
-//        val buildDir = layout.buildDirectory.get().asFile
-//        java.srcDir(buildDir.resolve("generated/source/proto/${it.name}/java"))
-//        kotlin.srcDir(buildDir.resolve("generated/source/proto/${it.name}/kotlin"))
-//    }
-//}
 
 dependencies {
     api(libs.protobuf.kotlin.lite)

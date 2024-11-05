@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.sean8.jeminai.core.orchestrator"
+    namespace = "ai.looqs.android.core.orchestrator"
 }
 
 dependencies {

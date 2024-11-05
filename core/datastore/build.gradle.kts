@@ -7,7 +7,7 @@ android {
     defaultConfig {
         consumerProguardFiles("consumer-proguard-rules.pro")
     }
-    namespace = "com.sean8.jeminai.core.datastore"
+    namespace = "ai.looqs.android.core.datastore"
     testOptions {
         unitTests {
             isReturnDefaultValues = true

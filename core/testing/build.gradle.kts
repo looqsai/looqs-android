@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.sean8.jeminai.core.testing"
+    namespace = "ai.looqs.android.core.testing"
 }
 
 dependencies {

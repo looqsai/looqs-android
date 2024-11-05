@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "jeminai"
+rootProject.name = "looqs"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 include(":core:testing")

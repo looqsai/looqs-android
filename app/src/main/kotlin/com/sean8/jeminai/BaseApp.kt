@@ -1,7 +1,7 @@
-package com.sean8.jeminai
+package ai.looqs.android
 
 import android.app.Application
-import com.sean8.jeminai.core.orchestrator.OrchestratorManager
+import ai.looqs.android.core.orchestrator.OrchestratorManager
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 

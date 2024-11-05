@@ -5,12 +5,12 @@ plugins {
 }
 
 android {
-    namespace = "com.sean8.jeminai"
+    namespace = "ai.looqs.android"
     defaultConfig {
-        applicationId = "com.sean8.jeminai"
+        applicationId = "ai.looqs.android"
         versionCode = 1
         versionName = "0.0.1"
-        testInstrumentationRunner = "com.sean8.jeminai.core.testing.HiltTestRunner"
+        testInstrumentationRunner = "ai.looqs.android.core.testing.HiltTestRunner"
     }
 
     buildTypes {

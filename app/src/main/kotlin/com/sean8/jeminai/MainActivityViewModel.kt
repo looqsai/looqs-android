@@ -1,11 +1,11 @@
-package com.sean8.jeminai
+package ai.looqs.android
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sean8.jeminai.MainActivityUiState.Loading
-import com.sean8.jeminai.MainActivityUiState.Success
-import com.sean8.jeminai.core.data.repository.UserDataRepository
-import com.sean8.jeminai.core.model.UserData
+import ai.looqs.android.MainActivityUiState.Loading
+import ai.looqs.android.MainActivityUiState.Success
+import ai.looqs.android.core.data.repository.UserDataRepository
+import ai.looqs.android.core.model.UserData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

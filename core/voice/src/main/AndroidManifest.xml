@@ -11,7 +11,7 @@
             android:exported="true"
             android:foregroundServiceType="microphone">
             <intent-filter>
-                <action android:name="com.sean8.jeminai.ACTION_START_RECORDING" />
+                <action android:name="ai.looqs.android.ACTION_START_RECORDING" />
             </intent-filter>
         </service>
     </application>

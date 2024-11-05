@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.sean8.jeminai.core.llm"
+    namespace = "ai.looqs.android.core.llm"
 
     buildFeatures.buildConfig = true
     defaultConfig.buildConfigField("String", "OPENAI_API_KEY", "\"${getOpenAiApiKey()}\"")

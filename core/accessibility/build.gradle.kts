@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.sean8.jeminai.core.accessibility"
+    namespace = "ai.looqs.android.core.accessibility"
 }
 
 dependencies {

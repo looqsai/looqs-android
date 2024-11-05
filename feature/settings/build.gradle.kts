@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.sean8.jeminai.feature.settings"
+    namespace = "ai.looqs.android.feature.settings"
 }
 
 dependencies {

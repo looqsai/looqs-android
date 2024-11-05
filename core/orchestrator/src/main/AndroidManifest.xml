@@ -8,7 +8,7 @@
             android:name=".OrchestratorService"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.sean8.jeminai.ACTION_DEMO" />
+                <action android:name="ai.looqs.android.ACTION_DEMO" />
             </intent-filter>
         </service>
     </application>
